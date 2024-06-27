@@ -1,0 +1,489 @@
+---
+title: "Volcanic_botanical_countries_models"
+author: "Oscar Wrisberg"
+date: '2023-03-17'
+output: html_document
+---
+
+Here I should load packages and data for these models
+```{r}
+#Packages
+packages <- c("devtools", "picante", "phytools","RColorBrewer", "geiger", "readr", "tidyverse", "ggpubr", "ggplot2","ggnewscale", "rnaturalearth", "rnaturalearthdata", "sf", "MetBrewer", "MonoPhy","ggtree","ggrepel", "modelsummary", "MuMIn","MASS","pscl","png", "magick", "cowplot")
+
+# Install packages not yet installed
+installed_packages <- packages %in% rownames(installed.packages())
+if (any(installed_packages == FALSE)) {
+  install.packages(packages[!installed_packages])
+}
+
+# Packages loading
+invisible(lapply(packages, library, character.only = TRUE))
+
+#Setting Directory
+wd <- dirname(rstudioapi::getSourceEditorContext()$path)
+setwd(wd)
+getwd()
+
+
+datadir <- dirname(file.path("../data"))
+
+# Selecting only volcanic islands
+output_all_sp_test_volcanic <- lapply(output_all_sp_test, function(x) x[which(x$GeologicalOrigin == "volcanic"),])
+
+```
+
+
+# Cladogenesis
+
+```{r}
+# Fitting cladogenetic model for volcanic islands.
+glm_clad_pois_all_sp_volcanic_list_tidy <- list()
+glm_clad_pois_all_sp_volcanic_list_models <- list()
+for (i in 1:100){
+  glm_clad_pois_all_sp_volcanic <- glm(radiating_sp-radiating_nodes~log10(mean_mx30_grd)+log10(area)+log10(dist)+log10(nearest_neighbour_distance_border_scaled),data=output_all_sp_test_volcanic[[i]][which(output_all_sp_test_volcanic[[i]]$radiating_sp >= 1),],family = quasipoisson(link='log'))
+  glm_clad_pois_all_sp_volcanic_list_models[[i]] <- glm_clad_pois_all_sp_volcanic
+  glm_clad_pois_all_sp_volcanic_list_tidy[[i]] <- broom::tidy(glm_clad_pois_all_sp_volcanic)
+}
+
+#-------------- preparing the coefficient plot for these models --------------
+#Now lets find the confidence intervals for these models.
+fit_clad_all_volcanic_95_list <- list()
+for (i in 1:100){
+  fit_clad_all_volcanic_95 <- confint(glm_clad_pois_all_sp_volcanic_list_models[[i]], level = 0.95) %>% 
+  data.frame() %>% 
+  dplyr::rename("conf.low_95" = "X2.5..",
+         "conf.high_95" = "X97.5..")
+  fit_clad_all_volcanic_95_list[[i]] <- fit_clad_all_volcanic_95
+  }
+
+# Combining the 95 intervals on all the models
+results_clad_all_volcanic_list <- list()
+for (i in 1:100){
+  results_clad_all_volcanic_list[[i]] <- dplyr::bind_cols(glm_clad_pois_all_sp_volcanic_list_tidy[[i]],fit_clad_all_volcanic_95_list[[i]]) 
+}
+
+# Creating a frankenstein of a violin plot where I will add 3 violin plots to the same coefficient one for the mean 
+glm_coef_hight_clad_volc <- as.data.frame(t(sapply(results_clad_all_volcanic_list, function(x) unlist(x[2,]))))
+glm_coef_area_clad_volc <- as.data.frame(t(sapply(results_clad_all_volcanic_list, function(x) unlist(x[3,]))))
+glm_coef_dist_clad_volc <- as.data.frame(t(sapply(results_clad_all_volcanic_list, function(x) unlist(x[4,]))))
+glm_coef_fragmentation_clad_volc <- as.data.frame(t(sapply(results_clad_all_volcanic_list, function(x) unlist(x[5,]))))
+
+# Stacking the dataframes
+glm_coefs_clad_volc <- rbind(glm_coef_area_clad_volc, glm_coef_hight_clad_volc, glm_coef_dist_clad_volc, glm_coef_fragmentation_clad_volc)
+glm_coefs_list_clad_volc <- list(glm_coef_hight_clad_volc,glm_coef_area_clad_volc,glm_coef_dist_clad_volc,glm_coef_fragmentation_clad_volc)
+
+#I have to create a dataframe with the means of all the 
+glm_coefs_mean_clad_volc <- data.frame()
+for (i in 1:4) {
+  temp_means <- vector()
+  temp_means <- apply(glm_coefs_list_clad_volc[[i]], 2, function(x) mean(as.numeric(unlist(x))))
+  temp_means["term"] <- glm_coefs_list_clad_volc[[i]][1,1]
+  print(temp_means)
+  glm_coefs_mean_clad_volc <- rbind(glm_coefs_mean_clad_volc,temp_means)
+}
+names(glm_coefs_mean_clad_volc) <- names(glm_coef_dist_clad_volc)
+
+# making a loop to convert character list rows to numeric 
+for(i in 2:7){
+  glm_coefs_mean_clad_volc[,i] <-as.numeric(unlist(glm_coefs_mean_clad_volc[,i]))
+}
+
+# Changeing some names
+glm_coefs_mean_names_clad_volc <- c("Max elevation","Area","Isolation","Fragmentation")
+glm_coefs_mean_names_clad_volc_old <- c("log10(mean_mx30_grd)","log10(area)","log10(dist)","log10(nearest_neighbour_distance_border_scaled)")
+glm_coefs_names_df_clad_volc <- cbind(glm_coefs_mean_names_clad_volc, glm_coefs_mean_names_clad_volc_old)
+glm_coefs_mean_clad_volc[,1] <- glm_coefs_mean_names_clad_volc
+
+for (i in 1:4){
+  glm_coefs_clad_volc[which(glm_coefs_clad_volc$term==glm_coefs_names_df_clad_volc[i,2]),1] <- glm_coefs_names_df_clad_volc[i,1]
+}
+
+# Creating a plot using violins to show the distribution of the mean and the 95 confidence interval
+gvil_volcanic_clad <- ggplot(glm_coefs_clad_volc, aes(color=term, fill = term)) +
+  scale_colour_manual(values = met.brewer("Hiroshige", 4)) +
+  scale_fill_manual(values = met.brewer("Hiroshige", 4)) +
+  geom_hline(yintercept = 0, colour = gray(1/2), lty = 10) +
+  geom_violin(aes(x = term, y = as.numeric(estimate),)) +
+  geom_violin(aes(x = term, y = as.numeric(conf.high_95),)) +
+  geom_violin(aes(x = term, y = as.numeric(conf.low_95),)) +
+  geom_crossbar(data = glm_coefs_mean_clad_volc, size=0.1, alpha=0.5, aes(x= term, y = estimate,
+                    ymin=conf.low_95,
+                    ymax=conf.high_95)) +
+  xlab("Coefficients") +
+  ylab("Estimate") +
+  theme_classic() +
+  theme(legend.position = "none") +
+  
+  coord_flip()
+
+gvil_volcanic_clad
+
+```
+
+# Anagenesis
+
+```{r}
+# Fitting anagenetic model for volcanic islands.
+glm_ana_pois_all_sp_volcanic_list_tidy <- list()
+glm_ana_pois_all_sp_volcanic_list_models <- list()
+for (i in 1:100){
+  glm_ana_pois_all_sp_volcanic <- glm(colonization_sp+radiating_nodes~log10(mean_mx30_grd)+log10(area)+log10(dist)+log10(nearest_neighbour_distance_border_scaled),data=output_all_sp_test_volcanic[[i]],family = quasipoisson(link='log'))
+  glm_ana_pois_all_sp_volcanic_list_models[[i]] <- glm_ana_pois_all_sp_volcanic
+  glm_ana_pois_all_sp_volcanic_list_tidy[[i]] <- broom::tidy(glm_ana_pois_all_sp_volcanic)
+}
+
+#-------------- preparing the coefficient plot for these models --------------
+#Now lets find the confidence intervals for these models.
+fit_ana_all_volcanic_95_list <- list()
+for (i in 1:100){
+  fit_ana_all_volcanic_95 <- confint(glm_ana_pois_all_sp_volcanic_list_models[[i]], level = 0.95) %>% 
+  data.frame() %>% 
+  dplyr::rename("conf.low_95" = "X2.5..",
+         "conf.high_95" = "X97.5..")
+  fit_ana_all_volcanic_95_list[[i]] <- fit_ana_all_volcanic_95
+  }
+
+# Combining the 95 intervals on all the models
+results_ana_all_volcanic_list <- list()
+for (i in 1:100){
+  results_ana_all_volcanic_list[[i]] <- dplyr::bind_cols(glm_ana_pois_all_sp_volcanic_list_tidy[[i]],fit_ana_all_volcanic_95_list[[i]]) 
+}
+
+#Creating dataframes with all estimates for each of the coefficients
+glm_coef_hight_ana_volcanic <- as.data.frame(t(sapply(results_ana_all_volcanic_list, function(x) unlist(x[2,]))))
+glm_coef_area_ana_volcanic <- as.data.frame(t(sapply(results_ana_all_volcanic_list, function(x) unlist(x[3,]))))
+glm_coef_dist_ana_volcanic <- as.data.frame(t(sapply(results_ana_all_volcanic_list, function(x) unlist(x[4,]))))
+glm_coef_fragmentation_ana_volcanic <- as.data.frame(t(sapply(results_ana_all_volcanic_list, function(x) unlist(x[5,]))))
+
+# Stacking the dataframes
+glm_coefs_ana_volc <- rbind(glm_coef_area_ana_volcanic, glm_coef_hight_ana_volcanic, glm_coef_dist_ana_volcanic, glm_coef_fragmentation_ana_volcanic)
+glm_coefs_list_ana_volc <- list(glm_coef_hight_ana_volcanic,glm_coef_area_ana_volcanic,glm_coef_dist_ana_volcanic,glm_coef_fragmentation_ana_volcanic)
+
+
+#I have to create a dataframe with the means of all the 
+glm_coefs_mean_ana_volc <- data.frame()
+for (i in 1:4) {
+  temp_means <- vector()
+  temp_means <- apply(glm_coefs_list_ana_volc[[i]], 2, function(x) mean(as.numeric(unlist(x))))
+  temp_means["term"] <- glm_coefs_list_ana_volc[[i]][1,1]
+  print(temp_means)
+  glm_coefs_mean_ana_volc <- rbind(glm_coefs_mean_ana_volc,temp_means)
+}
+names(glm_coefs_mean_ana_volc) <- names(glm_coef_dist_ana_volcanic)
+
+# making a loop to convert character list rows to numeric 
+for(i in 2:7){
+  glm_coefs_mean_ana_volc[,i] <-as.numeric(unlist(glm_coefs_mean_ana_volc[,i]))
+}
+
+# Changeing some names
+glm_coefs_mean_names_ana_volc <- c("Max elevation","Area","Isolation","Fragmentation")
+glm_coefs_mean_names_ana_volc_old <- c("log10(mean_mx30_grd)","log10(area)","log10(dist)","log10(nearest_neighbour_distance_border_scaled)")
+glm_coefs_names_df_ana_volc <- cbind(glm_coefs_mean_names_ana_volc, glm_coefs_mean_names_ana_volc_old)
+
+# Changing names in dataframe of means
+glm_coefs_mean_ana_volc[,1] <- glm_coefs_mean_names_ana_volc
+
+# Changing names in dataframe of estimates
+for (i in 1:4){
+  glm_coefs_ana_volc[which(glm_coefs_ana_volc$term==glm_coefs_names_df_ana_volc[i,2]),1] <- glm_coefs_names_df_ana_volc[i,1]
+}
+
+
+# Creating a plot using violins to show the distribution of the mean and the 95 confidence interval
+gvil_volcanic_ana <- ggplot(glm_coefs_ana_volc, aes(color=term, fill = term)) +
+  scale_colour_manual(values = met.brewer("Hiroshige", 4)) +
+  scale_fill_manual(values = met.brewer("Hiroshige", 4)) +
+  geom_hline(yintercept = 0, colour = gray(1/2), lty = 10) +
+  geom_violin(aes(x = term, y = as.numeric(estimate),)) +
+  geom_violin(aes(x = term, y = as.numeric(conf.high_95),)) +
+  geom_violin(aes(x = term, y = as.numeric(conf.low_95),)) +
+  geom_crossbar(data = glm_coefs_mean_ana_volc, size=0.1, alpha=0.5, aes(x= term, y = estimate,
+                    ymin=conf.low_95,
+                    ymax=conf.high_95)) +
+  xlab("Coefficients") +
+  ylab("Estimate") +
+  theme_classic() +
+  theme(legend.position = "none") +
+  coord_flip()
+
+gvil_volcanic_ana
+
+```
+
+
+# Number endemics
+
+```{r}
+# Fitting endemics model for volcanic islands.
+glm_endems_all_sp_volcanic_list_tidy <- list()
+glm_endems_all_sp_volcanic_list_models <- list()
+for (i in 1:100){
+  glm_endems_all_sp_volcanic <- glm(colonization_sp+radiating_sp~log10(mean_mx30_grd)+log10(area)+log10(dist)+log10(nearest_neighbour_distance_border_scaled),data=output_all_sp_test_volcanic[[i]],family = quasipoisson(link='log'))
+  glm_endems_all_sp_volcanic_list_models[[i]] <- glm_endems_all_sp_volcanic
+  glm_endems_all_sp_volcanic_list_tidy[[i]] <- broom::tidy(glm_endems_all_sp_volcanic)
+}
+
+#-------------- preparing the coefficient plot for these models --------------
+#Now lets find the confidence intervals for these models.
+fit_endems_all_volcanic_95_list <- list()
+for (i in 1:100){
+  fit_endems_all_volcanic_95 <- confint(glm_endems_all_sp_volcanic_list_models[[i]], level = 0.95) %>% 
+  data.frame() %>% 
+  dplyr::rename("conf.low_95" = "X2.5..",
+         "conf.high_95" = "X97.5..")
+  fit_endems_all_volcanic_95_list[[i]] <- fit_endems_all_volcanic_95
+  }
+
+# Combining the 95 intervals on all the models
+results_endems_all_volcanic_list <- list()
+for (i in 1:100){
+  results_endems_all_volcanic_list[[i]] <- dplyr::bind_cols(glm_endems_all_sp_volcanic_list_tidy[[i]],fit_endems_all_volcanic_95_list[[i]]) 
+}
+
+# Endems
+glm_coef_hight_endems_volcanic <- as.data.frame(t(sapply(results_endems_all_volcanic_list, function(x) unlist(x[2,]))))
+glm_coef_area_endems_volcanic <- as.data.frame(t(sapply(results_endems_all_volcanic_list, function(x) unlist(x[3,]))))
+glm_coef_dist_endems_volcanic <- as.data.frame(t(sapply(results_endems_all_volcanic_list, function(x) unlist(x[4,]))))
+glm_coef_fragmentation_endems_volcanic <- as.data.frame(t(sapply(results_endems_all_volcanic_list, function(x) unlist(x[5,]))))
+
+# Stacking the dataframes
+glm_coefs_endems_volc <- rbind(glm_coef_hight_endems_volcanic,
+                            glm_coef_area_endems_volcanic,
+                            glm_coef_dist_endems_volcanic,
+                            glm_coef_fragmentation_endems_volcanic)
+
+# List of dataframes
+glm_coefs_list_endems_volc <- list(glm_coef_hight_endems_volcanic,
+                            glm_coef_area_endems_volcanic,
+                            glm_coef_dist_endems_volcanic,
+                            glm_coef_fragmentation_endems_volcanic)
+
+# Endemic means
+glm_coefs_means_endems_volc <- data.frame()
+for (i in 1:4) {
+  temp_means <- vector()
+  temp_means <- apply(glm_coefs_list_endems_volc[[i]], 2, function(x) mean(as.numeric(unlist(x))))
+  temp_means["term"] <- glm_coefs_list_endems_volc[[i]][1,1]
+  glm_coefs_means_endems_volc <- rbind(glm_coefs_means_endems_volc,temp_means)
+}
+names(glm_coefs_means_endems_volc) <- names(glm_coef_dist_endems_volcanic)
+```
+
+
+# Proportion endemics
+
+```{r}
+# Fitting endemic proportopm model for volcanic islands.
+glm_prop_endems_all_sp_volcanic_list_tidy <- list()
+glm_prop_endems_all_sp_volcanic_list_models <- list()
+for (i in 1:100){
+  glm_prop_endems_all_sp_volcanic <- glm((colonization_sp+radiating_sp)/Total_sp~log10(mean_mx30_grd)+log10(area)+log10(dist)+log10(nearest_neighbour_distance_border_scaled),data=output_all_sp_test_volcanic[[i]],family = quasibinomial(link='log'))
+  glm_prop_endems_all_sp_volcanic_list_models[[i]] <- glm_prop_endems_all_sp_volcanic
+  glm_prop_endems_all_sp_volcanic_list_tidy[[i]] <- broom::tidy(glm_prop_endems_all_sp_volcanic)
+}
+
+#-------------- preparing the coefficient plot for these models --------------
+#Now lets find the confidence intervals for these models.
+fit_prop_endems_all_volcanic_95_list <- list()
+for (i in 1:100){
+  fit_prop_endems_all_volcanic_95 <- confint(glm_prop_endems_all_sp_volcanic_list_models[[i]], level = 0.95) %>% 
+  data.frame() %>% 
+  dplyr::rename("conf.low_95" = "X2.5..",
+         "conf.high_95" = "X97.5..")
+  fit_prop_endems_all_volcanic_95_list[[i]] <- fit_prop_endems_all_volcanic_95
+  }
+
+# Combining the 95 intervals on all the models
+results_prop_endems_all_volcanic_list <- list()
+for (i in 1:100){
+  results_prop_endems_all_volcanic_list[[i]] <- dplyr::bind_cols(glm_prop_endems_all_sp_volcanic_list_tidy[[i]],fit_prop_endems_all_volcanic_95_list[[i]]) 
+}
+
+# Endemc proportion
+glm_coef_hight_prop_endems_volcanic <- as.data.frame(t(sapply(results_prop_endems_all_volcanic_list, function(x) unlist(x[2,]))))
+glm_coef_area_prop_endems_volcanic <- as.data.frame(t(sapply(results_prop_endems_all_volcanic_list, function(x) unlist(x[3,]))))
+glm_coef_dist_prop_endems_volcanic <- as.data.frame(t(sapply(results_prop_endems_all_volcanic_list, function(x) unlist(x[4,]))))
+glm_coef_fragmentation_prop_endems_volcanic <- as.data.frame(t(sapply(results_prop_endems_all_volcanic_list, function(x) unlist(x[5,]))))
+
+
+# Stacking the dataframes
+glm_coefs_prop_endems_volc <- rbind(glm_coef_hight_prop_endems_volcanic,
+                            glm_coef_area_prop_endems_volcanic,
+                            glm_coef_dist_prop_endems_volcanic,
+                            glm_coef_fragmentation_prop_endems_volcanic)
+
+# List of dataframes
+glm_coefs_list_prop_endems_volc <- list(glm_coef_hight_prop_endems_volcanic,
+                            glm_coef_area_prop_endems_volcanic,
+                            glm_coef_dist_prop_endems_volcanic,
+                            glm_coef_fragmentation_prop_endems_volcanic)
+
+# Endemic means
+glm_coefs_means_prop_endems_volc <- data.frame()
+for (i in 1:4) {
+  temp_means <- vector()
+  temp_means <- apply(glm_coefs_list_prop_endems_volc[[i]], 2, function(x) mean(as.numeric(unlist(x))))
+  temp_means["term"] <- glm_coefs_list_prop_endems_volc[[i]][1,1]
+  glm_coefs_means_prop_endems_volc <- rbind(glm_coefs_means_prop_endems_volc,temp_means)
+}
+names(glm_coefs_means_prop_endems_volc) <- names(glm_coef_dist_prop_endems_volcanic)
+
+```
+
+
+
+
+# Proportion of endemics from anagenesis
+```{r}
+# Fitting proportion endemics from regional allopatric model for volcanic islands.
+glm_regional_allo_prop_all_sp_volcanic_list_tidy <- list()
+glm_regional_allo_prop_all_sp_volcanic_list_models <- list()
+for (i in 1:100){
+  glm_regional_allo_prop_all_sp_volcanic <- glm((colonization_sp+radiating_nodes)/(colonization_sp+radiating_sp)~log10(mean_mx30_grd)+log10(area)+log10(dist)+log10(nearest_neighbour_distance_border_scaled),data=output_all_sp_test_volcanic[[i]],family = quasibinomial)
+  glm_regional_allo_prop_all_sp_volcanic_list_models[[i]] <- glm_regional_allo_prop_all_sp_volcanic
+  glm_regional_allo_prop_all_sp_volcanic_list_tidy[[i]] <- broom::tidy(glm_regional_allo_prop_all_sp_volcanic)
+}
+
+#-------------- preparing the coefficient plot for these models --------------
+#Now lets find the confidence intervals for these models.
+fit_regional_allo_prop_all_volcanic_95_list <- list()
+for (i in 1:100){
+  fit_regional_allo_prop_all_volcanic_95 <- confint(glm_regional_allo_prop_all_sp_volcanic_list_models[[i]], level = 0.95) %>% 
+  data.frame() %>% 
+  dplyr::rename("conf.low_95" = "X2.5..",
+         "conf.high_95" = "X97.5..")
+  fit_regional_allo_prop_all_volcanic_95_list[[i]] <- fit_regional_allo_prop_all_volcanic_95
+  }
+
+# Combining the 95 intervals on all the models
+results_regional_allo_prop_all_volcanic_list <- list()
+for (i in 1:100){
+  results_regional_allo_prop_all_volcanic_list[[i]] <- dplyr::bind_cols(glm_regional_allo_prop_all_sp_volcanic_list_tidy[[i]],fit_regional_allo_prop_all_volcanic_95_list[[i]]) 
+}
+
+# Proportion endemics from regional allopatric speciation
+glm_coef_hight_regional_allo_prop_volcanic <- as.data.frame(t(sapply(results_regional_allo_prop_all_volcanic_list, function(x) unlist(x[2,]))))
+glm_coef_area_regional_allo_prop_volcanic <- as.data.frame(t(sapply(results_regional_allo_prop_all_volcanic_list, function(x) unlist(x[3,]))))
+glm_coef_dist_regional_allo_prop_volcanic <- as.data.frame(t(sapply(results_regional_allo_prop_all_volcanic_list, function(x) unlist(x[4,]))))
+glm_coef_fragmentation_regional_allo_prop_volcanic <- as.data.frame(t(sapply(results_regional_allo_prop_all_volcanic_list, function(x) unlist(x[5,]))))
+
+# Stacking the dataframes
+glm_coefs_regional_allo_prop_volc <- rbind(glm_coef_hight_regional_allo_prop_volcanic,
+                            glm_coef_area_regional_allo_prop_volcanic,
+                            glm_coef_dist_regional_allo_prop_volcanic,
+                            glm_coef_fragmentation_regional_allo_prop_volcanic)
+
+# List of dataframes
+glm_coefs_list_regional_allo_prop_volc <- list(glm_coef_hight_regional_allo_prop_volcanic,
+                            glm_coef_area_regional_allo_prop_volcanic,
+                            glm_coef_dist_regional_allo_prop_volcanic,
+                            glm_coef_fragmentation_regional_allo_prop_volcanic)
+
+# regional allopatric proportion means
+glm_coefs_means_regional_allo_prop_volc <- data.frame()
+for (i in 1:4) {
+  temp_means <- vector()
+  temp_means <- apply(glm_coefs_list_regional_allo_prop_volc[[i]], 2, function(x) mean(as.numeric(unlist(x))))
+  temp_means["term"] <- glm_coefs_list_regional_allo_prop_volc[[i]][1,1]
+  glm_coefs_means_regional_allo_prop_volc <- rbind(glm_coefs_means_regional_allo_prop_volc,temp_means)
+}
+names(glm_coefs_means_regional_allo_prop_volc) <- names(glm_coef_dist_regional_allo_prop_volcanic)
+```
+
+
+```{r}
+# Make a combined model for only volcanic islands
+#Stacking all Coef estimates for violins
+glm_coefs_ana_volc$type <- "Regional Allopatry"
+glm_coefs_clad_volc$type <- "Regional Sympatry"
+glm_coefs_endems_volc$type <- "Number Endemics"
+glm_coefs_prop_endems_volc$type <- "Proportion Endemics"
+glm_coefs_regional_allo_prop_volc$type <- "Proportion Endemics from Regional Allopatry"
+
+glm_coefs_volc <- data.frame()
+glm_coefs_volc <- rbind(glm_coefs_ana_volc,
+                        glm_coefs_clad_volc,
+                        glm_coefs_endems_volc,
+                        glm_coefs_prop_endems_volc,
+                        glm_coefs_regional_allo_prop_volc)
+
+#stacking all means for barplots
+glm_coefs_mean_ana_volc$type <- "Regional Allopatry"
+glm_coefs_mean_clad_volc$type <- "Regional Sympatry"
+glm_coefs_means_endems_volc$type <- "Number Endemics"
+glm_coefs_means_prop_endems_volc$type <- "Proportion Endemics"
+glm_coefs_means_regional_allo_prop_volc$type <- "Proportion Endemics from Regional Allopatry"
+
+glm_coefs_mean_volc <- data.frame()
+glm_coefs_mean_volc <- rbind(glm_coefs_mean_ana_volc,
+                             glm_coefs_mean_clad_volc,
+                             glm_coefs_means_endems_volc,
+                             glm_coefs_means_prop_endems_volc,
+                             glm_coefs_means_regional_allo_prop_volc)
+
+
+
+
+# making a loop to convert character list rows to numeric 
+for(i in 2:7){
+  glm_coefs_mean_volc[,i] <-as.numeric(unlist(glm_coefs_mean_volc[,i]))
+}
+
+for(i in 2:7){
+  glm_coefs_volc[,i] <-as.numeric(unlist(glm_coefs_volc[,i]))
+}
+
+
+
+# Changeing some names of the means
+glm_coefs_mean_names_volc <- c("Max elevation","Area","Isolation","Fragmentation")
+glm_coefs_mean_names_volc_old <- c("log10(mean_mx30_grd)","log10(area)","log10(dist)","log10(nearest_neighbour_distance_border_scaled)")
+glm_coefs_names_df_volc <- cbind(glm_coefs_mean_names_volc, glm_coefs_mean_names_volc_old)
+c
+
+for (i in 1:4){
+  glm_coefs_mean_volc[which(glm_coefs_mean_volc$term==glm_coefs_names_df_volc[i,2]),1] <- glm_coefs_names_df_volc[i,1]
+}
+
+for (i in 1:4){
+  glm_coefs_volc[which(glm_coefs_volc$term==glm_coefs_names_df_volc[i,2]),1] <- glm_coefs_names_df_volc[i,1]
+}
+
+# Creating plotting order
+plot_order_volcanic <- c("Area", "Isolation", "Max elevation", "Fragmentation")
+
+
+# Creating a plot using violins to show the distribution of the mean and the 95 confidence interval
+gvil_volcanic <- ggplot(glm_coefs_volc, aes(color=type, fill = type)) +
+  scale_colour_manual(values = met.brewer("Hiroshige", 5)) +
+  scale_fill_manual(values = met.brewer("Hiroshige", 5)) +
+  scale_x_discrete(limits = plot_order_volcanic) +
+  geom_violin(aes(x = term, y = as.numeric(estimate)),width = 0.68,position=position_dodge(width=0.9), scale = "width", alpha = 0.7,lwd=0.2) +
+  geom_violin(aes(x = term, y = as.numeric(conf.high_95)),width = 0.68,position=position_dodge(width=0.9), scale = "width", alpha = 0.7,lwd=0.2) +
+  geom_violin(aes(x = term, y = as.numeric(conf.low_95)),width = 0.68,position=position_dodge(width=0.9), scale = "width", alpha = 0.7,lwd=0.2) +
+  geom_crossbar(data = glm_coefs_mean_volc, size=0.1, alpha=0.5, aes(x= term, y = estimate,
+                    ymin=conf.low_95,
+                    ymax=conf.high_95),
+                position = position_dodge2(width = 1)) +
+    geom_hline(yintercept = 0, colour = gray(0), lty = 3) +
+  xlab("Coefficients") +
+  ylab("Estimate") +
+  theme_classic() +
+  labs(fill = element_blank(), colour = element_blank()) +
+  theme(legend.position = "None",legend.text=element_text(size=6)) +
+  labs(title = "Volcanic Island Botanical Countries") +
+  coord_flip()
+
+gvil_volcanic
+
+
+
+legend_bottom_volc <- get_legend(gvil_volcanic + guides(color = guide_legend(nrow=1))+theme(legend.position = "bottom", legend.text=element_text(size=6)))
+
+prow_volc <- cowplot::plot_grid(gvil_volcanic,legend_bottom_volc, ncol = 1, rel_heights = c(1,.1))
+prow_volc
+
+
+```
+

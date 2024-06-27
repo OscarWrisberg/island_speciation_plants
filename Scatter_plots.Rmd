@@ -1,0 +1,181 @@
+---
+title: "Scatterplot_of_islands"
+author: "Oscar Wrisberg"
+date: '2023-03-16'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+# p1 <- ggplot(output_all_sp_congregated, aes(area, dist+1)) +
+#   geom_point(aes(size=colonization_edges_mean, color=GeologicalOrigin)) +
+#   scale_colour_manual(values = met.brewer("Pillement", 4)) +
+#   labs(size ="Species", title = "Anagenesis") +
+#   xlab("Island Area (Km²)") +
+#   ylab("Distance to Mainland (Km) ") +
+#   scale_size(range=c(0.1,8), limits = c(0,7000)) +
+#   #ggrepel::geom_text_repel(aes(label=ifelse(colonization_edges_mean>1500,as.character(LEVEL3_NAM),'')),nudge_y=0.03,nudge_x=-0.10, size=4) +
+#   theme_classic() +
+#   theme(legend.position = "none") +
+#   scale_x_continuous(breaks = c(100,1000,10000,100000,1000000), limits = c(1,856017.9)) +
+#   scale_y_continuous(breaks = c(10,50,100,250,500,1000,2000,4000,8000), limits = c(1,8000)) +
+#    guides(size = guide_legend("Endemic species."), colour="none") +
+#   coord_trans(x="log10", y="log10")
+# 
+# p1
+```
+
+```{r}
+p1 <- ggplot(output_all_sp_congregated, aes(area, dist + 1)) +
+  geom_point(aes(size = colonization_edges_mean, color = GeologicalOrigin)) +
+  geom_point(data = output_all_sp_congregated[output_all_sp_congregated$colonization_edges_mean == 0, ],
+             aes(shape = "No Colonization", color = GeologicalOrigin),
+             size = 1.5) +
+  scale_colour_manual(values = met.brewer("Pillement", 4)) +
+  scale_size(range = c(0.1, 8), limits = c(0, 7000), breaks = c(10,1000, 2000, 5000)) +
+  scale_shape_manual(values = c("No Colonization" = 4)) +
+  labs(size = "Species", title = "Anagenesis") +
+  xlab("Island Area (Km²)") +
+  ylab("Distance to Mainland (Km)") +
+  theme_classic() +
+  theme(legend.position = "bottom") +
+  scale_x_continuous(breaks = c(100, 1000, 10000, 100000, 1000000), limits = c(1, 856017.9)) +
+  scale_y_continuous(breaks = c(10, 50, 100, 250, 500, 1000, 2000, 4000, 8000), limits = c(1, 8000)) +
+  guides(size = guide_legend("Endemic species."), colour="none", shape="none") +
+  coord_trans(x = "log10", y = "log10")
+
+p1
+
+
+
+```
+
+
+```{r}
+p2 <- ggplot(output_all_sp_congregated, aes(area,dist+1)) +
+  geom_point(aes(size=radiating_sp_mean, color=GeologicalOrigin)) +
+  geom_point(data = output_all_sp_congregated[output_all_sp_congregated$radiating_sp_mean == 0, ],
+             aes(shape = "No Radiating" , color = GeologicalOrigin),
+             size = 1.5) +
+  scale_colour_manual(values = met.brewer("Pillement", 4)) +
+  labs(size ="Endemic Sp", title = "Cladogenesis") +
+  xlab("Island Area (Km²)") +
+  ylab("Distance to Mainland (Km)") +
+  scale_size(range=c(0.1,8), limits = c(1,7000)) +
+  scale_shape_manual(values = c("No Radiating" = 4)) +
+  #ggrepel::geom_text_repel(aes(label=ifelse(radiating_sp_mean>150,as.character(LEVEL3_NAM),'')),nudge_y=0.03,nudge_x=-0.10, size=4) +
+  theme_classic() +
+  theme(legend.position = "right") +
+  scale_x_continuous(breaks = c(100,1000,10000,100000,1000000), limits = c(1,856017.9)) +
+  scale_y_continuous(breaks = c(10,50,100,250,500,1000,2000,4000,8000), limits = c(1,8000)) +
+  guides(size = "none", colour=guide_legend("Geological Origin"), shape = "none") +
+  coord_trans(x="log10", y="log10")
+
+p2
+
+
+
+```
+
+
+```{r}
+# Creating combined plot
+all_vasc_scatter <- cowplot::plot_grid(p1+theme(legend.position = "none"),p2+theme(legend.position = "none"))
+legend_bottom <- get_legend(p1)
+all_vasc_scatter <- cowplot::plot_grid(all_vasc_scatter,legend_bottom, ncol=1,nrow = 2, rel_heights = c(1,.1))
+
+# now add the title
+title_all_vasc <- ggdraw() + 
+  draw_label(
+    "All Seed plants",
+    fontface = 'bold',
+    x = 0,
+    hjust = 0
+  ) +
+  theme(
+    # add margin on the left of the drawing canvas,
+    # so title is aligned with left edge of first plot
+    plot.margin = margin(0, 0, 0, 40)
+  )
+all_vasc_scatter <- plot_grid(
+  title_all_vasc, all_vasc_scatter,
+  ncol = 1,
+  # rel_heights values control vertical title margins
+  rel_heights = c(0.1, 1)
+)
+
+all_vasc_scatter
+
+
+```
+
+
+
+```{r}
+#output_with_island <- merge(output_with_island, output_all_sp_congregated[,c(1,57:71)], by="LEVEL3_COD",all = FALSE, sort = FALSE, no.dups = TRUE)
+
+p3 <- ggplot(output_with_island, aes(log10(`No. cladogenesis`+`No. anagenesis`), log10(radiating_sp_mean+colonization_sp_mean)))
+p3 + geom_point(aes(color=GeologicalOrigin.x)) +
+scale_colour_manual(values = met.brewer("Pillement", 4)) +
+labs(title = "Number of endemic Coryphoideae species compared to endemics of all plants") +
+  xlab("Endemic Coryphoids") +
+  ylab("Endemic Plants") +
+  geom_text(aes(label=ifelse(`No. anagenesis`>2,as.character(LEVEL3_NAM),'')),hjust=0.8 ,vjust=1.8, size=3) +
+  geom_smooth(method = lm) +
+  theme_classic()
+```
+
+
+```{r}
+p4 <- ggplot(output_with_island, aes(`No. cladogenesis`, radiating_sp_mean))
+p4 + geom_point(aes(color=GeologicalOrigin.x)) +
+scale_colour_manual(values = met.brewer("Pillement", 4)) +
+labs(title = "Number of species resulting from cladogenesis: \n Coryphoideae compared to all plants") +
+  xlab("Endemics from Radiation: Coryphoids") +
+  ylab("Endemics from Radiation: all plants") +
+  geom_text(aes(label=ifelse(`No. anagenesis`+`No. cladogenesis`>2,as.character(LEVEL3_NAM),'')),hjust=0.8 ,vjust=1.8, size=3) +
+  geom_smooth(method = lm) +
+  theme_classic()
+```
+
+```{r}
+p5 <- ggplot(output_with_island, aes(`No. anagenesis`, colonization_sp_mean))
+p5 + geom_point(aes(color=GeologicalOrigin.x)) +
+scale_colour_manual(values = met.brewer("Pillement", 4)) +
+labs(title = "Number of endemic species with no sister species found on the island: \n Coryphoideae compared to all plants") +
+  xlab("Endemic Coryphoids") +
+  ylab("Endemic Plants") +
+  ggrepel::geom_text_repel(aes(label=ifelse(`No. anagenesis`>1,as.character(LEVEL3_NAM),'')),size=3) +
+  geom_smooth(method = lm) +
+  theme_classic()
+```
+
+```{r}
+p6 <- ggplot(output_with_island, aes((`No. cladogenesis`+`No. anagenesis`)/Total_sp_coryphoids, (radiating_sp_mean+colonization_sp_mean)/Total_sp))
+p6 + geom_point(aes(color=GeologicalOrigin.x)) +
+scale_colour_manual(values = met.brewer("Pillement", 4)) +
+labs(title = "Proportion of endemic Coryphoideae species compared to \n Proportion of endemics of all plants") +
+  xlab("Proportion Endemic Coryphoids") +
+  ylab("Proportion Endemic Plants") +
+  geom_text_repel(aes(label=ifelse(colonization_sp_mean>10 & `No. cladogenesis`+`No. anagenesis`>=1 ,as.character(LEVEL3_NAM),'')),size=3) +
+  geom_smooth(method = lm) +
+  theme_classic()
+```
+
+
+```{r}
+p7 <- ggplot(output_with_island, aes((`No. cladogenesis`)/Total_sp_coryphoids, (radiating_sp_mean)/Total_sp))
+p7 + geom_point(aes(color=GeologicalOrigin.x)) +
+labs(title = "Proportion of endemic Coryphoideae species from cladogenesis compared to \n Proportion of endemics from cladogenesis of all plants") +
+  scale_colour_manual(values = met.brewer("Pillement", 4)) +
+  xlab("Proportion Endemic Coryphoids") +
+  ylab("Proportion Endemic Plants") +
+  geom_text(aes(label=ifelse(radiating_sp_mean>2 & `No. cladogenesis`>=1 ,as.character(LEVEL3_NAM),'')),hjust=0.8 ,vjust=1.8, size=3) +
+  geom_smooth(method = lm) +
+  theme_classic()
+```
