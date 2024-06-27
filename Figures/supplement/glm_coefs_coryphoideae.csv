@@ -1,0 +1,22 @@
+term,estimate,std.error,statistic,p.value,conf.low_95,conf.high_95,type
+Area,1.52694644112867,0.345416229359397,4.42059842978575,1.26421605075741e-4,0.90147604784415,2.26165449378165,Anagenesis
+Fragmentation,-0.228140781879741,0.117716195808815,-1.93805771850009,0.0624069596934987,-0.450169063184858,0.0186816504797607,Anagenesis
+Area,1.29463034800145,0.678741424603784,1.90739845996167,0.0660834644725397,0.13705459048119,2.87690184936735,Cladogenesis
+Area,1.29444578800839,0.436393042171334,2.96623837439684,0.00586659944160646,0.51554658098883,2.24682897255725,Number Endemics
+Isolation,NA,NA,NA,NA,NA,NA,Anagenesis
+Isolation Squared,NA,NA,NA,NA,NA,NA,Anagenesis
+Max Elevation,NA,NA,NA,NA,NA,NA,Anagenesis
+Mixed Origin,NA,NA,NA,NA,NA,NA,Anagenesis
+Continental,NA,NA,NA,NA,NA,NA,Anagenesis
+Isolation,NA,NA,NA,NA,NA,NA,Cladogenesis
+Isolation Squared,NA,NA,NA,NA,NA,NA,Cladogenesis
+Max Elevation,NA,NA,NA,NA,NA,NA,Cladogenesis
+Mixed Origin,NA,NA,NA,NA,NA,NA,Cladogenesis
+Continental,NA,NA,NA,NA,NA,NA,Cladogenesis
+Fragmentation,NA,NA,NA,NA,NA,NA,Cladogenesis
+Isolation,NA,NA,NA,NA,NA,NA,Number Endemics
+Isolation Squared,NA,NA,NA,NA,NA,NA,Number Endemics
+Max Elevation,NA,NA,NA,NA,NA,NA,Number Endemics
+Mixed Origin,NA,NA,NA,NA,NA,NA,Number Endemics
+Continental,NA,NA,NA,NA,NA,NA,Number Endemics
+Fragmentation,NA,NA,NA,NA,NA,NA,Number Endemics
