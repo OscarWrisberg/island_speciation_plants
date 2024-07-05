@@ -1,13 +1,3 @@
----
-title: "All_species_islands_clean"
-author: "Oscar Wrisberg"
-date: '2023-03-16'
-output: html_document
----
-
-The purporse of this document is to gather all the calculations of variables which needs to be run in order to produce the dataset on which I fit the models. 
-
-```{r}
 #Packages
 packages <- c("devtools", "picante", "phytools","RColorBrewer", "geiger", "readr", "tidyverse", "ggpubr", "ggplot2","ggnewscale", "rnaturalearth", "rnaturalearthdata", "sf", "MetBrewer", "MonoPhy","ggrepel", "modelsummary", "MuMIn","MASS","pscl","png", "magick", "cowplot", "lwgeom", "this.path") # "ggtree",
 
@@ -22,26 +12,25 @@ invisible(lapply(packages, library, character.only = TRUE))
 
 #Setting Directory
 setwd(this.path::here())
-datadir <- dirname(file.path("../data"))
-```
 
-Loading files with data
+#####################################################################################################################
+############################################---- Loading data ----###################################################
+#####################################################################################################################
 
-```{r}
 #Loading data for plotting
-all_fles <- list.files(file.path("./TACT_trees"), pattern = ".rds")
-dat_list <- lapply(all_fles, function(x) readRDS(file.path("./TACT_trees",x)))
-output_with_island <- readRDS(file.path("./","output_with_island_data.rds"))
+all_fles <- list.files(file.path(datadir,"TACT_trees"), pattern = ".rds")
+dat_list <- lapply(all_fles, function(x) readRDS(file.path(datadir,"TACT_trees",x))) # Results from Melanies Tacted trees
+output_with_island <- readRDS(file.path(datadir,"output_with_island_data.rds"))
 data.table::setnames(output_with_island,'GeologicalOrigin.y','GeologicalOrigin')
-island_data_origin <- read_csv(file.path("../data","/Islands_TDWG_AllData.txt"))
-botanical_countries <- st_read(dsn = file.path("../data","wgsrpd-master/level3"), layer = "level3")
-dist_data <- read.csv(file.path("../data","checklist_distribution.txt"), sep = "|") 
-elev_data <- read.csv(file.path("../data","bot_countries_maxElev.csv"))
+island_data_origin <- read_csv(file.path(datadir,"/Islands_TDWG_AllData.txt"))
+botanical_countries <- st_read(dsn = file.path(datadir,"wgsrpd-master/level3"), layer = "level3")
+dist_data <- read.csv(file.path(datadir,"checklist_distribution.txt"), sep = "|") 
+elev_data <- read.csv(file.path(datadir,"bot_countries_maxElev.csv"))
 
-```
 
-Calculating the number of unique endemic species per botanical country.
-```{r}
+#####################################################################################################################
+#########################################---- Massaging the data ----################################################
+#####################################################################################################################
 # Calculating the lengths of each list
 output_all_sp_uniq <- lapply(dat_list, function(x) lapply(x, function(y) lapply(y, unique)))
 output_all_sp_lengths <- lapply(output_all_sp_uniq, function(x) lapply(x, function(y) lapply(y, length)))
@@ -103,10 +92,10 @@ gift_data[which(gift_data$LEVEL3_COD == "DOM"),42] <- gift_data[which(gift_data$
 #Merging the datasets
 output_as_df_all_sp <- lapply(output_as_df_all_sp, function(x) merge(x, gift_data, by="LEVEL3_COD"))
 
-```
 
-Editing the island origin data and merging it with the main data
-```{r}
+#####################################################################################################################
+#####################################---- Adding Geological Origin ----##############################################
+#####################################################################################################################
 #Renaming column to be the same as in the gift database
 names(island_data_origin)[1] <- "LEVEL3_COD"
 
@@ -121,9 +110,10 @@ output_all_sp_origin <- lapply(output_as_df_all_sp, function(x) merge(x, island_
 which(!(output_as_df_all_sp[[1]][,1] %in% island_data_origin_merge$LEVEL3_COD))
 print(output_as_df_all_sp[[1]][119,1])
 
-```
-Editing the max elevation of island botanical countries and merging it with the data.
-```{r}
+#####################################################################################################################
+#####################################---- Adding Elevation data ----#################################################
+#####################################################################################################################
+
 #selecting only the geological origin and the name
 island_data_elevation_merge <- elev_data[,c(3,6,7)]
 
@@ -135,15 +125,14 @@ output_with_island <- merge(output_with_island, island_data_elevation_merge, by=
 
 # Checking if any island is missing
 which(!(output_all_sp[[1]][,1] %in% island_data_origin_merge$LEVEL3_COD)) # None of them is
-```
 
-Editing the names of some botanical countries which are bad
-```{r, echo=FALSE}
+#####################################################################################################################
+#####################################---- Fixing the data names ----#################################################
+#####################################################################################################################
+
 # There are some problems with Melanies data where some of the island botanical countries have bad names
 # Faulty island names
 # "F\xf8royar"            "Gal\xe1pagos"          "Juan Fern\xe1ndez Is." "R\xe9union", Mozambique Channel I", "Cocos (Keeling) Is." 
-
-# and the island "Nauru" "Prince Edward I." should be "Nauru" or "Prince Edward I." ?? Looks like I have missed some " at some point
 
 #Should be Faroe, Galapagos, Juan Fernandes Islands, Reunion
 # LEVEL3_COD names = FOR GAL JNF REU
@@ -165,8 +154,7 @@ botanical_countries_islands <- botanical_countries[which(botanical_countries$LEV
 
 botanical_countries_islands$LEVEL3_COD[which(botanical_countries_islands$LEVEL3_COD == "HAI")] <- "DOM" # 122
 
-sf::sf_use_s2(FALSE)
-
+sf::sf_use_s2(FALSE) # Does not work with sf_use_s2(TRUE)
 
 #Combining Haiti and the Dominican Republic
 botanical_countries_islands %>% 
@@ -174,10 +162,11 @@ botanical_countries_islands %>%
     summarise(geometry = sf::st_union(geometry)) %>%
     ungroup()
 
-```
 
-Calculating the average distance between all islands in each island botanical countries
-```{r, echo=FALSE}
+#####################################################################################################################
+#####################################---- Calculating fragmentation ----#############################################
+#####################################################################################################################
+
 #Setting sf to NOT use S2 distances
 sf::sf_use_s2(FALSE)
 
@@ -235,11 +224,10 @@ for (i in 1:100){
   output_all_sp[[i]][,k] <- as.numeric(unlist(output_all_sp[[i]][,k]))
 }
 
-```
+#####################################################################################################################
+#####################################---- Fixing the data names ----#################################################
+#####################################################################################################################
 
-
-
-```{r}
 # Making tempoary dataframes for the different variables.
 tmp_colonisation_nodes <- as.data.frame(sapply(output_all_sp, function(x) unlist(x[["colonisation_nodes"]])))
 tmp_colonisation_sp <- as.data.frame(sapply(output_all_sp, function(x) unlist(x[["colonization_sp"]])))
@@ -275,13 +263,6 @@ for (i in 1:length(tmp_data)){
   output_all_sp_congregated <- merge(output_all_sp_congregated, loop_df, by="LEVEL3_COD")
 }
 
-
-
-```
-
-
-Changing fragmentation to be 0 instead of NA for the island botanical countries which consist of only one island.
-```{r}
 output_all_sp_test <- output_all_sp
 
 # This is where I change NA's to 0's in for nearest_neighbour_distance_border_scaled
@@ -289,11 +270,6 @@ for (i in 1:100) {
   output_all_sp_test[[i]]$nearest_neighbour_distance_border_scaled[is.na(output_all_sp_test[[i]]$nearest_neighbour_distance_border_scaled)] <- 0
 }
 
-```
-
-
-Calculating the total number of species per island botanical country.
-```{r}
 # Removing introduced and doubtfull locations
 dist_data <- dist_data[which(dist_data$introduced != 1 & dist_data$location_doubtful != 1 ),]
 
@@ -310,11 +286,8 @@ names(total_island_sp) <- c("LEVEL3_COD","Total_sp")
 
 output_all_sp_test <- lapply(output_all_sp_test, function(x) merge(x, total_island_sp, by="LEVEL3_COD"))
 
-saveRDS(output_all_sp_test, "output_for_test_all_sp")
-```
+saveRDS(output_all_sp_test, "output_for_test_all_sp") 
 
-# I need to create a new dataset which contains the logtransformed values as this is a necessity for the dredge function
-```{r}
 output_all_sp_test_subset_log <- list()
 
 # Creating a subset of the values I need
@@ -330,10 +303,7 @@ output_all_sp_test_subset_log[[i]]$nearest_neighbour_distance_border_scaled <- l
 saveRDS(output_all_sp_test_subset_log, "output_for_test_all_sp_subset_log")
 
 
-```
-
-
-```{r}
+# Creating a subset for Coryphoideae
 output_coryphoideae_test_subset_log <- list()
 
 # Creating a subset of the values I need
@@ -348,14 +318,12 @@ output_coryphoideae_test_subset_log[which(is.na(output_coryphoideae_test_subset_
 
 saveRDS(output_coryphoideae_test_subset_log, "output_for_test_coryphoideae_subset_log")
 
-```
 
+#####################################################################################################################
+#####################################---- Creating the functions ----#################################################
+#####################################################################################################################
 
-
-# Functions
-
-# qdredge funtion
-```{r}
+# Modifying qdredge to work with quasi poisson
 # modify a glm() output object so that
 # it contains a quasipoisson fit but the 
 # AIC (likelihood) from the equivalent regular Poisson model
@@ -378,13 +346,9 @@ qdredge <- function(model, family=x.quasipoisson, na.action=na.fail, chat = dfun
   (dt <- dredge(model2, rank=rank, chat=chat, ...))
 }
 
-```
-
-
-```{r}
 # modify a glm() output object so that
 # it contains a quasipoisson fit but the 
-# AIC (likelihood) from the equivalent regular Poisson model
+# AIC (likelihood) from the equivalent regular binomial model
 x.quasibinomial <- function(...) {
 res <- quasibinomial(...)
 res$aic <- binomial(...)$aic
@@ -404,11 +368,7 @@ qdredge_bin <- function(model, family=x.quasibinomial, na.action=na.fail, chat =
   (dt <- dredge(model2, rank=rank, chat=chat, ...))
 }
 
-```
-
-
-# Model count function
-```{r}
+# Function which counts which model is the best
 # function that modifies MuMIn::dredge() 
 # for use with quasi GLM
 best_model_counts <- function(input_formula, dataset_list, family_x){
@@ -440,24 +400,7 @@ best_model_vars_count <- best_model_vars_test %>% as.data.frame() %>% group_by_a
 return(best_model_vars_count)
 }
 
-# Spare function that works
-# best_model_vars <- data.frame()
-# 
-# for (i in 1:100){
-# test_dat_log <- output_all_sp_test_subset_log[[i]]
-# 
-# dredge_output <- qdredge(glm(colonization_sp+radiating_nodes~mean_mx30_grd+area+dist+nearest_neighbour_distance_border_scaled+GeologicalOrigin,data=test_dat_log,family = quasipoisson, na.action = na.fail))
-# 
-# best_model_vars <- rbind(best_model_vars, dredge_output[which(dredge_output$delta == 0),1:10])
-# 
-# }
-#best_model_vars_test <- is.na(best_model_vars)
-#best_model_vars_count <- is.na(best_model_vars) %>% as.data.frame() %>% group_by_all() %>% count()
-#best_model_vars_count
-```
-
-
-```{r}
+# Functions which adds data to the plots.
 AddVars_mean <- function(dat_set, term, type){
   output_df <- dat_set
   nr_rows <- length(dat_set[1,])
@@ -508,14 +451,7 @@ AddVars_violin <- function(dat_set, term, type){
   return(output_df)
 }
 
-terms_list <- c("Area","Isolation","Isolation Squared", "Max Elevation","Mixed Origin","Continental","Fragmentation")
-type_list <- c("Anagenesis", "Cladogenesis","Number Endemics")
 
-
-```
-
-
-```{r}
 get_legend <- function(plot, legend = NULL) {
   
   gt <- ggplotGrob(plot)
@@ -539,6 +475,3 @@ get_legend <- function(plot, legend = NULL) {
   }
   return(NULL)
 }
-
-```
-
