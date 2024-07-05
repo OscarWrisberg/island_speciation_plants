@@ -78,7 +78,7 @@ for (x in 1:length(output_as_df_all_sp)){
 output_as_df_all_sp <- lapply(output_as_df_all_sp, function(x) tibble::rownames_to_column(x,"LEVEL3_COD"))
 
 #Loading the gift dataset
-gift_data <- read.csv(file.path("../data","env_tdwg_GIFT.csv"), sep = ",")
+gift_data <- read.csv(file.path(datadir,"env_tdwg_GIFT.csv"), sep = ",")
 
 #Editing Gift dataset to make Haiti and Dominican republic one botanical country.
 # Adding the Areas together
