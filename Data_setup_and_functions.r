@@ -286,7 +286,7 @@ names(total_island_sp) <- c("LEVEL3_COD","Total_sp")
 
 output_all_sp_test <- lapply(output_all_sp_test, function(x) merge(x, total_island_sp, by="LEVEL3_COD"))
 
-saveRDS(output_all_sp_test, "output_for_test_all_sp") 
+saveRDS(output_all_sp_test, file.path(datadir,"output_for_test_all_sp")) 
 
 output_all_sp_test_subset_log <- list()
 
@@ -300,7 +300,7 @@ output_all_sp_test_subset_log[[i]]$dist <- log10(output_all_sp_test_subset_log[[
 output_all_sp_test_subset_log[[i]]$nearest_neighbour_distance_border_scaled <- log10(output_all_sp_test_subset_log[[i]]$nearest_neighbour_distance_border_scaled+1)
 }
 
-saveRDS(output_all_sp_test_subset_log, "output_for_test_all_sp_subset_log")
+saveRDS(output_all_sp_test_subset_log, file.path(datadir,"output_for_test_all_sp_subset_log"))
 
 
 # Creating a subset for Coryphoideae
@@ -316,7 +316,7 @@ output_coryphoideae_test_subset_log$nearest_neighbour_distance_border_scaled <- 
 output_coryphoideae_test_subset_log[which(is.na(output_coryphoideae_test_subset_log$nearest_neighbour_distance_border_scaled)),8] <- 0
 
 
-saveRDS(output_coryphoideae_test_subset_log, "output_for_test_coryphoideae_subset_log")
+saveRDS(output_coryphoideae_test_subset_log, file.path(datadir,"output_for_test_coryphoideae_subset_log"))
 
 
 #####################################################################################################################
@@ -475,3 +475,7 @@ get_legend <- function(plot, legend = NULL) {
   }
   return(NULL)
 }
+
+# List of terms for the plots and models 
+terms_list <- c("Area","Isolation","Isolation Squared", "Max Elevation","Mixed Origin","Continental","Fragmentation")
+type_list <- c("Anagenesis", "Cladogenesis","Number Endemics")
