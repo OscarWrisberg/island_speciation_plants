@@ -2,7 +2,7 @@
 all_fles <- list.files(file.path(datadir,"TACT_trees"), pattern = ".rds")
 dat_list <- lapply(all_fles, function(x) readRDS(file.path(datadir,"TACT_trees",x))) # Results from Melanies Tacted trees
 output_with_island <- readRDS(file.path(datadir,"output_with_island_data.rds"))
-data.table::setnames(output_with_island,'GeologicalOrigin.y','GeologicalOrigin')
+#data.table::setnames(output_with_island,'GeologicalOrigin.y','GeologicalOrigin')
 
 
 

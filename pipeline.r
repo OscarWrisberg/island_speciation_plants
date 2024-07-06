@@ -13,6 +13,16 @@ if (any(installed_packages == FALSE)) {
 # Packages loading
 invisible(lapply(packages, library, character.only = TRUE))
 
+#Packages
+if (!require("BiocManager", quietly = TRUE)){
+    install.packages("BiocManager")
+}
+library(BiocManager)
+
+if (!require("ggtree", quietly = TRUE)){
+    BiocManager::install("ggtree")
+}
+library(ggtree)
 
 # Start by setting the working directory as the directory in which this file is saved
 # Specify the file path
@@ -29,7 +39,7 @@ datadir <- "/home/au543206/Documents/Coryphoideae/Figures_in_r/data"
 setwd(dir_path)
 
 # Then we run the Coryphoideae section.
-source("Finding_speciation_events_corphyoideae.r")
+source("Finding_speciation_events_coryphoideae.r")
 
 # Start by running the Data_setup_and_functions.Rmd
 source("Data_setup_and_functions.r")
@@ -41,7 +51,7 @@ source("Finding_speciation_events_all_plants.r")
 source("Model_fitting_other_models.r")
 
 # Running the script which creates the Coryphoideae phylogeny
-source("Coryphoideae_phylogeny.r")
+source("Coryphoideae_phylogeny_plot.r")
 
 # Running the plotting script to create all the figues
 source("plotting_script.R")

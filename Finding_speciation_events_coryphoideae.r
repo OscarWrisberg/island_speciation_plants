@@ -84,7 +84,9 @@ cory_phylo_all_genes<- read.tree(file.path(datadir,"astral_tree.tre"))
 
 # Dropping tips
 cory_phylo_all_genes <- drop.tip(cory_phylo_all_genes,tips_to_drop)
-cory_phylo_all_genes <- drop.tip(cory_phylo_all_genes,unpublished_and_root)
+cory_phylo_all_genes <- drop.tip(cory_phylo_all_genes,unpublished)
+cory_phylo_all_genes <- drop.tip(cory_phylo_all_genes,root)
+cory_phylo_all_genes <- drop.tip(cory_phylo_all_genes,subspANDvars)
 
 
 # Renaming tips with problematic names
@@ -579,8 +581,6 @@ px1 <- ggplot(output_with_island_cory, aes(area,`No. cladogenesis`/(`No. anagene
 px1
 
 
-Now we can do the same but with the Cladogenesis and Anagenesis
-
 
 # for (i in variables){
 #   plot_dat <- output_with_island_cory %>% select('No. cladogenesis','No. anagenesis',!!rlang::sym(i)) %>% pivot_longer(-!!rlang::sym(i))
@@ -596,13 +596,6 @@ Now we can do the same but with the Cladogenesis and Anagenesis
 #     theme_classic2()
 #   print(py)
 # }
-
-
-
-
-Okay So there is not really any of these that show any nice correlation between number of species and different climatic variables.
-Can we instead investigate the phylogeny a little deeper.
-I will now use GGtree to produce some better pictures of the phylogenies to show how the dispersal has been onto the islands
 
 
 # cuba_edges <- output_as_df["Cuba",][[1]]
@@ -663,13 +656,6 @@ I will now use GGtree to produce some better pictures of the phylogenies to show
 #   #scale_color_manual(group=c("Black,","Orange"))
 # 
 # #ptree3  
-
-
-
-
-Now I need to find the total number of palm species on each of the islands that I am investigating.
-I should be able to do this using the world checklist and the checklist distribution.
-I should start by making a list of all the accepted palm species names 
 
 
 apalms # a list of all the accepted palm species (subspecies and varieties)
@@ -772,13 +758,11 @@ p11 + geom_point() +
   geom_smooth(method = lm) +
   theme_classic()
 
-I think I have all the species data I need for now. But I would really like to get some data on how disjunct the island botanical countries are in order to do some tests which should show the impact of connectivity within the island botanical countries
-
 # st_convex_hull() This is the function I want to use
 # For each of the island botanical countries I should loop through them and calculate the proportion of the convex hull which is land area
 
 #Loading the botanical country dataframe
-botanical_countries <- st_read(dsn = file.path("../data","wgsrpd-master/level3"), layer = "level3")
+botanical_countries <- st_read(dsn = file.path(datadir,"wgsrpd-master/level3"), layer = "level3")
 
 #Now I need to create a subset of the botanical countries which are the islands.
 botanical_countries_islands_cory <- botanical_countries[which(botanical_countries$LEVEL3_NAM %in% islands_cory),]
@@ -801,15 +785,6 @@ botanical_countries_islands_cory <- botanical_countries[which(botanical_countrie
 # output_with_island_cory <- merge(output_with_island_cory, island_area_chull, by="LEVEL3_NAM")
 # 
 # output_with_island_cory$area_prop <- output_with_island_cory$area/output_with_island_cory$convex_hull_area
-
-
-Question is still how does this area proportion scale?
-Some islands might have a really big proportion because the island only consists of a single small island while others might have a small proportion because it consists of a single big island and then 3 or 4 really distant small islands.
-
-Therefore it would probably be a good idea to scale this proportion to something with the area
-I think we could just scale it to the overall area, but this does not discern between 4 semi big islands which are medium isolated and a really big island with a few small satellite islands.
-
-I think a better approach would be to use the area of the biggest island in the Island Botanical Country
 
 sf::sf_use_s2(FALSE)
 
@@ -844,12 +819,6 @@ for (k in 1:length(botanical_countries_islands_cory[[1]])) {
 #   #geom_text_repel(aes(label=ifelse(Total_sp>1,as.character(LEVEL3_NAM),'')), size=3) +
 #   theme_classic()
 
-
-Through a conversation with Erick Kush, I have come to the conclusion that I should just use the mean centroid distance between all the islands, and IF i want to do something with the size of the island at the same time I should probably multiply each distance with the size of the source island as this would mean that you capture large distances with large islands better (Dividing by size would mean you could get same result from small not so isolated islands as you would with large very isolated islands)
-
-So goal is now to calculate the mean distance for a distance matrix of all island botanical countries in order to capture the disjunct nature of these Island botanical countries. 
-
-
 #Calculate distances between all island from island border and centroid
 island_distances <- data.frame()
 
@@ -870,24 +839,9 @@ island_distances[,2:3] <- island_distances[,2:3]/1000
 
 output_with_island_cory <- merge(output_with_island_cory, island_distances, by="LEVEL3_NAM")
 
-
-These numbers have a problem because the mean distance is really high for some island botanical countries due to their total size and extent, this is the example for Borneo and Hawaii. A quick look at the different island botanical countries shows how these numbers might be affected by size of islands.
-
 # for (k in 1:length(botanical_countries_islands[[1]])) {
 #   plot(botanical_countries_islands[k,1], main = botanical_countries_islands[[1]][k])
 # }
-
-
-So the idea is, maybe I should standardize the distance between all islands based on the size of the island being measured from?
-This would mean that small far away islands will have less of an impact.
-
-Problem is that distance is pairwise and in the previous method i just took the distances in the upper triangle as there were no differences if the distance was from Island A to B or B to A. But if you somehow standardize for the size of the island were measuring from, suddenly the distance from A to B can be very different to the distance from B to A.
-
-I therefore need to figure out if I should always measure the distance between two islands using the smallest island or the biggest island.
-I could probably do both and see how it affects the results
-
-Unfortunately using the previous approach we either lose the area of the smallest or biggest island.
-Can we somehow figure out a method that also incorporates the size of the largest island. maybe if we standardize the distance based on the size of the island compared to the total size of the island botanical country.
 
 
 #First we need to calculate the distances between the islands of the island botanical country and then divide each row in the distance matrix with the area of the island of that row.
@@ -1003,11 +957,6 @@ Can we somehow figure out a method that also incorporates the size of the larges
 # output_with_island_cory <- merge(output_with_island_cory, island_scaled_distances, by="LEVEL3_NAM")
 
 
-
-
-
-After talking with Wolf I think that I should also calculate the mean nearest neighbour distance for all the islands and then scale all those distances based on the size of both islands.
-
 # This could be done using the distance matrix for all the islands
 # Then I should just select the lowest value for each row which is larger than 0. as this would be the nearest neighbour
 # In order to scale this nearest neighbor distance with the area of the islands you should just multiply the distance with the area of island[row nr] and island[column nr]
@@ -1054,8 +1003,6 @@ output_with_island_cory <- merge(output_with_island_cory, near_neighbour_dist, b
 near_neighbour_dist
 output_with_island_cory
 order(output_with_island_cory$area)
-
-We also need to load the dataset from Melanie about Island Origin
 
 # # # Loading Dataset with Geological Origin
 # island_data_origin <- read_csv(file.path("../data","/Islands_TDWG_AllData.txt"))
@@ -1123,21 +1070,15 @@ dp_glm_ana_pois_all_log10 = sum(residuals(glm_ana_pois_all,type ="pearson")^2)/g
 
 summary(glm_ana_pois_all_log10, dispersion = dp_glm_ana_pois_all_log10)
 
+# Because our variance is overdispersed for the cladogenesis data we have to resort to a quasipoisson model.
+# Although quasipoisson models have no AIC because they have no likelihood there has been some workarounds done.
+# My solution is to use the AIC of the poisson model and then use the rest of the parameters from the quasipoisson model in the dredge function from MuMIn.
 
 
+# This is all done Based on the vignette PDF by Ben Bolker (https://cran.r-project.org/web/packages/bbmle/vignettes/quasi.pdf)
+# and the further work by Stacy DeRuiter in her  STAT 245, Advanced Data Analysis course at Calvin University. (https://stacyderuiter.github.io/s245-notes-bookdown/regression-for-count-data.html)  section 6.7.3
 
-
-
-
-Because our variance is overdispersed for the cladogenesis data we have to resort to a quasipoisson model.
-Although quasipoisson models have no AIC because they have no likelihood there has been some workarounds done.
-My solution is to use the AIC of the poisson model and then use the rest of the parameters from the quasipoisson model in the dredge function from MuMIn.
-
-
-This is all done Based on the vignette PDF by Ben Bolker (https://cran.r-project.org/web/packages/bbmle/vignettes/quasi.pdf)
-and the further work by Stacy DeRuiter in her  STAT 245, Advanced Data Analysis course at Calvin University. (https://stacyderuiter.github.io/s245-notes-bookdown/regression-for-count-data.html)  section 6.7.3
-
-This method of using the AIC value of the non quasi model requires some setting up and that is what we will be doing here.
+# This method of using the AIC value of the non quasi model requires some setting up and that is what we will be doing here.
 
 
 # modify a glm() output object so that
@@ -1163,19 +1104,9 @@ qdredge <- function(model, family='x.quasipoisson', na.action=na.fail, chat = df
 }
 
 
-Now lets run this qdredge function on our cladogenesis models
-
-
 #Cladogenesis
 #dredge(glm_clad_cory)
 #qdredge(glm_clad_cory)
-
-
-Here we can see that the model using all variables and the model only 
-
-
-
-And compare them with the results from the dredge function on the anagenesis data.
 
 #Anagenesis
 qdredge(glm_ana_pois_all_log10)
@@ -1184,18 +1115,11 @@ qdredge(glm_ana_pois_all_log10)
 
 dredge(glm_ana_pois_all_log10)
 
+# Now we have the best models, and I would therefore like to make a coefficients plot for the coefficients of the best models.
+# To start with I will use broom::tidy in order to get the estimates.
 
-
-
-Now we have the best models, and I would therefore like to make a coefficients plot for the coefficients of the best models.
-To start with I will use broom::tidy in order to get the estimates.
-
-Something is wrong with my estimates of the importance of geological origin. The standard errors are massive for my cladogenesis model.
-This means I cannot get reliable confidence intervals because they approach 
-
-
-
-
+# Something is wrong with my estimates of the importance of geological origin. The standard errors are massive for my cladogenesis model.
+# This means I cannot get reliable confidence intervals because they approach 
 
 #Getting the coefficient estimates for cladogenesis
 results_ana <- broom::tidy(glm_ana_pois_all)
@@ -1263,17 +1187,10 @@ glm_clad_pois_no_geo <- glm(`No. cladogenesis`-`No. edges`~log10(mean_mx30_grd)+
 summary(glm_clad_pois_no_geo)
 
 
-Let us also try to fit a negative binomial model for the cladogenesis
-
 glm_clad_nb_no_geo <- glm.nb(`No. cladogenesis`-`No. edges`~log10(mean_mx30_grd)+log10(area)+log10(dist)+log10(nearest_neighbour_distance_border_scaled)+GeologicalOrigin,
                     data=output_with_island_cory_no_christmas_or_jamaica)
 
 summary(glm_clad_nb_no_geo)
-
-
-
-
-
 
 
 #Now lets find the confidence intervals for these models.
@@ -1301,10 +1218,6 @@ ggplot(results_clad,
         ggtitle("Cladogenetic coefficient table") +
         coord_flip()
 
-I have an idea that this huge standard error is caused by the amount of islands having no cladogenesis at all, and that I therefore have to incorporate some sort of zeroinflation model into my dataset.
-
-
-
 
 model1 <- zeroinfl(
   `No. cladogenesis`-`No. edges`~log10(mean_mx30_grd)+log10(area)+log10(dist)+log10(nearest_neighbour_distance_border_scaled)+GeologicalOrigin |
@@ -1316,19 +1229,12 @@ summary(model1)
 
 
 
-
-
 ggplot(output_with_island_cory_no_christmas_or_jamaica, aes(x=`No. cladogenesis`-`No. edges`)) +
   geom_bar()
 
 
 ggplot(output_with_island_cory_no_christmas_or_jamaica, aes(x=`No. anagenesis`+`No. edges`)) +
   geom_bar()
-
-
-Creating some boxplots for the predictor variables  for the islands which have cladogenesis and the islands which does not have cladogenesis. 
-
-First I need to find the islands where there is Cladogenesis
 
 
 clad_islands <- output_with_island_cory$LEVEL3_NAM[which(output_with_island_cory$`No. cladogenesis` >= 1)]
@@ -1354,7 +1260,7 @@ variabl <- c("Max Height", "Area", "Isolation", "Fragmentation")
 anova(glm_ana_pois_all)
 glm_ana_pois_all
 
-
+saveRDS(output_with_island_cory, file.path(datadir,"output_with_island_data.rds"))
 
 # Old code which I am a bit afraid to just delete.
 
@@ -1401,17 +1307,4 @@ old_subspANDvars <- c("Phoenix loureiroi var pedunculata","Cryosophila kalbreyer
 # #cory_phylo$tip.label["2058"][1] <- "Rhapis laosensis subsp. macrantha"
 
 
-
-df <- data.frame(pet = c("cat","dog","snake"),
-  count = c(20,5,94))
-
-plot <- ggplot2::ggplot(df, ggplot2::aes(pet, count, fill = pet)) +
-  ggplot2::geom_col() +
-  ggplot2::theme(legend.position = "top") # <- specify position of legend
-
-legend = cowplot::get_plot_component(plot, 'guide-box-top', return_all = TRUE)
-cowplot::ggdraw(legend)
-
-
-saveRDS(output_with_island_cory, file.path(datadir,"output_with_island_data.rds"))
 
