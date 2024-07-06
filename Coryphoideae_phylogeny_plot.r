@@ -463,7 +463,7 @@ cory_phylo_dat_plot <- ggtree(cory_phylo_dat, aes(color=speciation), layout = "c
   theme(legend.position = "bottom") +
   theme(legend.title=element_blank())
 
-cory_phylo_dat_plot
+print(cory_phylo_dat_plot)
 
 
 # phoenix_subtree <- extract.clade(cory_phylo, MRCA(cory_phylo, c("Phoenix rupicola", "Phoenix dactylifera")))
