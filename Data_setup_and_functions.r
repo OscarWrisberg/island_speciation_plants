@@ -302,7 +302,6 @@ output_all_sp_test_subset_log[[i]]$nearest_neighbour_distance_border_scaled <- l
 
 saveRDS(output_all_sp_test_subset_log, file.path(datadir,"output_for_test_all_sp_subset_log"))
 
-
 # Creating a subset for Coryphoideae
 output_coryphoideae_test_subset_log <- list()
 
@@ -478,4 +477,4 @@ get_legend <- function(plot, legend = NULL) {
 
 # List of terms for the plots and models 
 terms_list <- c("Area","Isolation","Isolation Squared", "Max Elevation","Mixed Origin","Continental","Fragmentation")
-type_list <- c("Anagenesis", "Cladogenesis","Number Endemics")
+type_list <- c("Between-region speciation","Number Endemics","Within-region speciation")

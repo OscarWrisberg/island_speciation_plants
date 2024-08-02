@@ -14,7 +14,7 @@ names(figurename_idx) <- figurename$V1
 cory_phylo$tip.label = figurename_idx[cory_phylo$tip.label]
 
 # Tips which I need to drop because I have duplicates
-tips_to_drop <- c("Brahea dulcis 1", "Brahea dulcis 3", "Brahea edulis 2", "Coccothrinax acuminata 2", "Coccothrinax argentata 1", "Coccothrinax argentata 2", "Coccothrinax argentata 4", "Coccothrinax argentea 2", "Coccothrinax barbadensis 1", "Coccothrinax garciana 2", "Copernicia cowellii 2", "Corypha lecomtei 2", "Licuala lautherbachii 1", "Phoenix paludosa 1", "Pritchardua flynnii 2", "Pritchardua flynnii 3", "Pritchardia glabrata 2", "Pritchardia hardyi 2","Pritchardia hardyi 3", "Pritchardia kahukuensis 2", "Pritchardia munroi 1", "Pritchardia perlmanii 2", "Pritchardia viscosa 2", "Rhapis robusta 2", "Rhapus puhuongensis 2", "Trithrinax brasiliensis 2", "Trithrinax brasiliensis 3", "Trithrinax schizophylla 2", "Trithrinax schizophylla 3", "Zombia antillarum 2")
+tips_to_drop <- c("Brahea dulcis 1", "Brahea dulcis 3", "Brahea edulis 2", "Coccothrinax acuminata 2", "Coccothrinax argentata 1", "Coccothrinax argentata 2", "Coccothrinax argentata 4", "Coccothrinax argentea 2", "Coccothrinax barbadensis 1", "Coccothrinax garciana 2", "Copernicia cowellii 2", "Corypha lecomtei 2", "Licuala lauterbachii 1", "Phoenix paludosa 1", "Pritchardia flynnii 2", "Pritchardia flynnii 3", "Pritchardia glabrata 2", "Pritchardia hardyi 2","Pritchardia hardyi 3", "Pritchardia kahukuensis 2", "Pritchardia munroi 1", "Pritchardia perlmanii 2","Pritchardia perlmanii 3", "Pritchardia viscosa 2", "Rhapis robusta 2", "Rhapis puhuongensis 2", "Trithrinax brasiliensis 2", "Trithrinax brasiliensis 3", "Trithrinax schizophylla 2", "Trithrinax schizophylla 3", "Zombia antillarum 2")
 
 #Dropping outgroup, novo species and a missing subsp.
 root <- c("Aphandra natalia","Eugeissona tristis","Nypa fruticans","Chrysalidocarpus ambositrae")
@@ -34,6 +34,10 @@ cory_phylo <- drop.tip(cory_phylo, subspANDvars) # sub species and vars
 # Remove the trailing numbers
 cory_phylo$tip.label <- gsub(" \\d+$", "", cory_phylo$tip.label)
 
+# Check for duplicates
+duplicates <- duplicated(cory_phylo$tip.label)
+
+
 # Tips where I need to convert a sub sp to the sp
 cory_phylo$tip.label["3130"][1] <- "Licuala glabra"
 cory_phylo$tip.label["3176"][1] <- "Licuala malajana"
@@ -49,7 +53,12 @@ cory_phylo$edge.length[is.na(cory_phylo$edge.length)] <- 0.001
 
 # Lets try to plot this phylogeny and see how it looks so far.
 
-ggtree(cory_phylo, layout = "circular", ladderize = FALSE, size = 0.6, branch.length = "none")
+ggtree(cory_phylo, layout = "dendrogram", ladderize = FALSE, size = 0.6, )
+
+ggtree(cory_phylo, ladderize = TRUE, size = 0.4, branch.length = "none" ) +
+  coord_flip() +
+  coord_flip()
+
 
 #Creating a list of all accepted names within Coryphoideae
 data <- read.csv(file.path(datadir,"checklist_names.txt"), sep = "|")
@@ -146,8 +155,6 @@ islands <- c("Borneo", "Sumatera", "Hainan", "Taiwan", "Christmas I.", "Maluku",
 # We decide to join Haiti and the Dominican republic because it is mainly a single island hispaniola
 community_matrixes_orthologs[which(community_matrixes_orthologs[,"Haiti"] == 1),"Dominican Republic"] <- "1" # Making species found in Haiti also be found on Dominical Republic.
 community_matrixes_orthologs <- community_matrixes_orthologs[,-which(colnames(community_matrixes_orthologs)=="Haiti")] # Removing Haiti from the community matrix
-
-
 
 
 
@@ -310,7 +317,7 @@ AddSpeciation <- function(tree, endemic, widespread) {
             next # Skip to the next iteration if it is null
           } else {
             # Mark edges in the tree as cladogenetic edges
-            tbbl_tree$speciation[which(tbbl_tree$node %in% endemic[[i]][[j]][[1]])] <- "Cladogenesis"
+            tbbl_tree$speciation[which(tbbl_tree$node %in% endemic[[i]][[j]][[1]])] <- "Within-region speciation"
             
             if (!is.null(endemic[[i]][[j]])) {
               # Find all descendants from each node
@@ -323,7 +330,7 @@ AddSpeciation <- function(tree, endemic, widespread) {
             # Mark all descendant edges as cladogenetic
             if (!(purrr::is_empty(decen_edges))) {
               for (k in 1:length(decen_edges)) {
-                tbbl_tree$speciation[which(tbbl_tree$node %in% decen_edges[[k]])] <- "Cladogenesis"
+                tbbl_tree$speciation[which(tbbl_tree$node %in% decen_edges[[k]])] <- "Within-region speciation"
               }
             }
             # Marking the basal most edge of each Cladogenetic clade as Anagenesis
@@ -331,8 +338,8 @@ AddSpeciation <- function(tree, endemic, widespread) {
             for (edge in basal_edges) {
               parent_node <- tbbl_tree$parent[edge]
               # If the parent node is not already marked as Cladogenesis, mark the edge as Anagenesis
-              if (tbbl_tree$speciation[parent_node] != "Cladogenesis") {
-                tbbl_tree$speciation[edge] <- "Anagenesis"
+              if (tbbl_tree$speciation[parent_node] != "Within-region speciation") {
+                tbbl_tree$speciation[edge] <- "Between-region speciation"
               }
             }
           }
@@ -344,7 +351,7 @@ AddSpeciation <- function(tree, endemic, widespread) {
             next # Skip to the next iteration if it is null
           } else {
             # Mark species in the tree as cladogenetic species
-            tbbl_tree$speciation[which(tbbl_tree$label %in% endemic[[i]][[j]][[1]])] <- "Cladogenesis"
+            tbbl_tree$speciation[which(tbbl_tree$label %in% endemic[[i]][[j]][[1]])] <- "Within-region speciation"
           }
         }
       } else {
@@ -353,7 +360,7 @@ AddSpeciation <- function(tree, endemic, widespread) {
           next # Skip to the next iteration if it is null
         } else {
           # Mark species in the tree as anagenetic species
-          tbbl_tree$speciation[which(tbbl_tree$label %in% endemic[[i]][[j]][[1]])] <- "Anagenesis"
+          tbbl_tree$speciation[which(tbbl_tree$label %in% endemic[[i]][[j]][[1]])] <- "Between-region speciation"
         }
       }
     }
@@ -447,9 +454,6 @@ dat_subfam <- data.frame(
 
 
 
-
-
-
 output_community_matrix_islands <- FindEndemicLineages(cory_phylo,community_matrixes_orthologs,islands)
 
 widespread_island_lineages <- FindEndemicLineagesMultipleAreas(cory_phylo, community_matrixes_orthologs, islands)
@@ -459,12 +463,73 @@ cory_phylo_dat <- AddSpeciation(cory_phylo, output_community_matrix_islands, wid
 
 cory_phylo_dat_plot <- ggtree(cory_phylo_dat, aes(color=speciation), layout = "circular", ladderize = FALSE, size = 0.8, branch.length = "none") +
   geom_cladelab(data = dat_subfam,mapping = aes(node = node,label = name),fontsize = 4, align = TRUE, angle = "auto", offset = 2, horizontal = TRUE) +
-  scale_colour_manual(values = c("#efc86e","#6f9969","#28292b", "#EE4B2B")) +
+  scale_colour_manual(values = c("#efc86e","#28292b","#EE4B2B","#6f9969")) +
   theme(legend.position = "bottom") +
   theme(legend.title=element_blank())
 
 print(cory_phylo_dat_plot)
 
+
+# Testing whether there is a phylogenetic signal in the cory_phylo_dat
+# I want to know if there is a signal in being on an island or not and also whether there is a signal between within-region speciation and betweem-region speciation.
+# I will use the geiger package with the fitdiscrete function to test this.
+
+# First I create a copy of the data to work with
+cory_phylo_dat_tibble <- as.tibble(cory_phylo_dat)
+tip_labels <- cory_phylo_dat_tibble$label[which(cory_phylo_dat_tibble$label %in% cory_phylo$tip.label)]
+
+# Now I add the data from the cory_phylo_dat_tibble to the tip labels to create a dataframe for testing phylogenetic signal
+cory_phylo_dat_phylosig <- cbind(tip_labels, cory_phylo_dat_tibble[which(cory_phylo_dat_tibble$label %in% cory_phylo$tip.label),])
+
+# can I add the numbers from the tip labels of the phylogeny to the data frame?
+tip_nr <- names(cory_phylo$tip.label)
+rownames(cory_phylo_dat_phylosig) <- tip_nr
+cory_phylo_dat_phylosig[,c(1,6)]
+
+speciation_method <- cory_phylo_dat_phylosig$speciation
+names(speciation_method) <- cory_phylo$tip.label
+
+# Then I need to fit the model
+phylosig_model_endemic_1 <- fitDiscrete(phy = cory_phylo, dat = speciation_method, model = "ER", nsim = 1000, transform = "lambda")
+phylosig_model_endemic_2 <- fitDiscrete(phy = cory_phylo, dat = speciation_method, model = "ER", nsim = 1000, transform = "none")
+
+phylosig_model_endemic_1$opt$lnL
+phylosig_model_endemic_2$opt$lnL
+
+logLik_1 <- phylosig_model_endemic_1$opt$lnL
+logLik_2 <- phylosig_model_endemic_2$opt$lnL
+
+LR <- 2 * (logLik_1 - logLik_2)
+p_value <- pchisq(LR, df = 1, lower.tail = FALSE)
+
+print(paste("Testing wether there is a phylogenetic signal in being Between-region speciation, Within-region speciation, Widespread on Islands and Not endemic on Island"))
+print(paste("Likelihood ratio test p-value:", p_value))
+
+# Now I want to do the same but I want to test wether there is a phylogenetic signal in being on an island or not.
+# Create the data from the speciation_method.
+# if speciation method is "Not endemic on Island" then the value is 0, if it is "Widespread on Islands", "Between-region speciation" or "Within-region speciation" then the value is 1.
+speciation_num <- c()
+for (i in 1:length(speciation_method)) {
+  if (speciation_method[i] == "Not endemic on Island") {
+    speciation_num <- append(speciation_num, "Not island")
+  } else {
+    speciation_num <- append(speciation_num, "Island")
+  }
+}
+
+names(speciation_num) <- cory_phylo$tip.label
+
+phylosig_model_speciation_1 <- fitDiscrete(phy = cory_phylo, dat = speciation_num, model = "ER", nsim = 1000, transform = "lambda")
+phylosig_model_speciation_2 <- fitDiscrete(phy = cory_phylo, dat = speciation_num, model = "ER", nsim = 1000, transform = "none")
+
+logLik_spec_1 <- phylosig_model_speciation_1$opt$lnL
+logLik_spec_2 <- phylosig_model_speciation_2$opt$lnL
+
+LR_spec <- 2 * (logLik_spec_1 - logLik_spec_2)
+p_value_spec <- pchisq(LR_spec, df = 1, lower.tail = FALSE)
+
+print(paste("Testing wether there is a phylogenetic signal in being found on an island or not"))
+print(paste("Likelihood ratio test p-value:", p_value_spec))
 
 # phoenix_subtree <- extract.clade(cory_phylo, MRCA(cory_phylo, c("Phoenix rupicola", "Phoenix dactylifera")))
 # 

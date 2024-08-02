@@ -524,10 +524,64 @@ cory_scatter <- plot_grid(
 
 cory_scatter
 
+# Boxplot for Cladogenetic Speciation Events
+p1_boxplot_cory <- ggplot(output_with_island_cory, aes(x = GeologicalOrigin, y = `No. anagenesis`+`No. edges`)) +
+  geom_boxplot(aes(fill = GeologicalOrigin)) +
+  scale_fill_manual(values = met.brewer("Pillement", 4)) +
+  labs(title = "Between-region speciation") +
+  xlab("") +
+  ylab("") +
+  theme_classic() +
+  theme(
+    axis.text.x = element_blank(),  # Remove x-axis text
+    axis.ticks.x = element_blank(),  # Remove x-axis ticks
+    axis.title.x = element_blank()   # Remove x-axis title
+  ) +
+  theme(legend.position = "none")
+
+p1_boxplot_cory
+
+# Boxplot for Cladogenetic Speciation Events
+p2_boxplot_cory <- ggplot(output_with_island_cory, aes(x = GeologicalOrigin, y = `No. cladogenesis`-`No. edges`)) +
+  geom_boxplot(aes(fill = GeologicalOrigin)) +
+  scale_fill_manual(values = met.brewer("Pillement", 4)) +
+  labs(title = "Within-region speciation") +
+  xlab("") +
+  ylab("") +
+  theme_classic() +
+  theme(
+    axis.text.x = element_blank(),  # Remove x-axis text
+    axis.ticks.x = element_blank(),  # Remove x-axis ticks
+    axis.title.x = element_blank()   # Remove x-axis title
+  ) +
+  theme(legend.position = "none")
+
+p2_boxplot_cory
 
 
+# Use cowplot to combine the two boxplots
+cory_boxplot <- cowplot::plot_grid(p1_boxplot_cory,p2_boxplot_cory)
 
-
+# now add the title
+title_cory <- cowplot::ggdraw() + 
+  draw_label(
+    "Coryphoideae",
+    fontface = 'bold',
+    x = 0,
+    hjust = 0
+  ) +
+  theme(
+    # add margin on the left of the drawing canvas,
+    # so title is aligned with left edge of first plot
+    plot.margin = margin(0, 0, 0, 40)
+  )
+cory_boxplot <- plot_grid(
+  title_cory, cory_boxplot,
+  ncol = 1,
+  # rel_heights values control vertical title margins
+  rel_heights = c(0.1, 1)
+)
+cory_boxplot
 
 
 
@@ -707,7 +761,6 @@ p7 + geom_point() +
   theme_classic()
 
 
-
 #sp_area_dist_ap <- output_with_island_cory %>%  pivot_longer(cols = ,)
 
 p8 <- ggplot(output_with_island_cory, aes(area, dist))
@@ -757,6 +810,8 @@ p11 + geom_point() +
   geom_text(aes(label=ifelse(`No. anagenesis`+`No. cladogenesis`>2,as.character(LEVEL3_NAM),'')),hjust=0.8 ,vjust=1.8, size=3) +
   geom_smooth(method = lm) +
   theme_classic()
+
+
 
 # st_convex_hull() This is the function I want to use
 # For each of the island botanical countries I should loop through them and calculate the proportion of the convex hull which is land area

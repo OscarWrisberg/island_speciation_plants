@@ -47,6 +47,9 @@ source("Data_setup_and_functions.r")
 # And the same section for the phylogenetic trees of all plants
 source("Finding_speciation_events_all_plants.r")
 
+# Model fitting for main models
+source("Model_fitting.r")
+
 # Then we run the scripts for the model fitting of all the other models
 source("Model_fitting_other_models.r")
 
@@ -54,4 +57,4 @@ source("Model_fitting_other_models.r")
 source("Coryphoideae_phylogeny_plot.r")
 
 # Running the plotting script to create all the figues
-source("plotting_script.R")
+source("Plotting_script.R")

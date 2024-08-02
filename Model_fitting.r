@@ -2,8 +2,6 @@
 output_all_sp_test_subset_log <- readRDS(file.path(datadir,"output_for_test_all_sp_subset_log"))
 test_dat_log_cory <- readRDS(file.path(datadir,"output_for_test_coryphoideae_subset_log"))
 
-
-
 # Finding the best model for the cladogenesis
 best_model_vars_clad <- data.frame()
 second_best_model_clad  <- data.frame()
@@ -366,14 +364,14 @@ for (i in 1:100){
 
 # Adding the speciation mode to the results
 for (i in 1:100) {
-  results_ana_all_list[[i]]$type <- "Anagenesis"
+  results_ana_all_list[[i]]$type <- "Between-region speciation"
   results_endems_all_list[[i]]$type <- "Number Endemics"
   results_prop_endems_all_list[[i]]$type <- "Proportion Endemics"
   #results_regional_allo_prop_all_list[[i]]$type <- "Proportion Endemics from Regional Allopatry"
 }
 
 for (i in 1:96) {
-results_clad_all_list[[i]]$type <- "Cladogenesis"
+results_clad_all_list[[i]]$type <- "Within-region speciation"
 }
 # I have some trees which cause problems because they have more parameter,s these are (8,26,31,41)
 # these 4 models do not have any parameters for the geological origin because we have a single radiating species pair on the bahamas atolls
@@ -586,11 +584,20 @@ for (i in 1:6){
 
 # Creating plotting order
 plot_order <- c("Area", "Isolation","Isolation Squared","Max Elevation","Fragmentation","Continental","Mixed Origin")
+plot_order <- c("Area", "Isolation","Isolation Squared","Max Elevation","Fragmentation")
+
+# Change glm_coefs anagenesis and cladogenesis to between-region and within-region speciation
+glm_coefs[which(glm_coefs$type=="Anagenesis"),8] <- "Between-region speciation"
+glm_coefs[which(glm_coefs$type=="Cladogenesis"),8] <- "Within-region speciation"
+
+# Do the same for the means
+coefs_means[which(coefs_means$type=="Anagenesis"),8] <- "Between-region speciation"
+coefs_means[which(coefs_means$type=="Cladogenesis"),8] <- "Within-region speciation"
 
 #Now I should be ready to make my violin + box plot for all species on all the islands.
 gvil_all_all <- ggplot(glm_coefs, aes(color=type, fill = type)) +
-  scale_colour_manual(values = c("#efc86e","#6f9969","#454a74")) +
-  scale_fill_manual(values = c("#efc86e","#6f9969","#454a74")) +
+  scale_colour_manual(values = c("#efc86e","#454a74","#6f9969")) +
+  scale_fill_manual(values = c("#efc86e","#454a74","#6f9969")) +
   scale_x_discrete(limits = plot_order) +
   geom_violin(aes(x = term, y = as.numeric(estimate)),width = 0.60,position=position_dodge(width=1), scale = "width", alpha = 0.8,lwd=0.2) +
   geom_violin(aes(x = term, y = as.numeric(conf.high_95)),width = 0.60,position=position_dodge(width=1), scale = "width", alpha = 0.8,lwd=0.2) +
@@ -600,13 +607,13 @@ gvil_all_all <- ggplot(glm_coefs, aes(color=type, fill = type)) +
                     ymax=conf.high_95),
                 position = position_dodge(width = 1)) +
   geom_text(data = coefs_means,
-            aes(x = term, y = conf.high_95 + 0.3, label = ifelse(p.value < 0.05, "*", " ")),
+            aes(x = term, y = conf.high_95 + 0.2, label = ifelse(p.value < 0.05, "*", " ")),
             position = position_dodge(width = 1),
             hjust = -0.7, size = 5, show.legend = FALSE, na.rm = TRUE)+
   geom_hline(yintercept = 0, colour = gray(0), lty = 3) +
-  xlab("Coefficients") +
+  xlab("") +
   ylab("Estimate") +
-  scale_y_continuous(breaks = seq(-10, 15, by = 5), limits = c(-10,15)) +
+  scale_y_continuous(breaks = seq(-2, 14, by = 2), limits = c(-2,14)) +
   theme_classic() +
   theme(axis.title.y = element_blank(),legend.position = "none") +
   ggtitle("All Plants: All Geological Origins")
@@ -727,8 +734,8 @@ results_endems_cory <- results_endems_cory[-1,]
 
 
 
-results_ana_cory$type <-"Anagenesis"
-results_clad_cory$type <- "Cladogenesis"
+results_ana_cory$type <-"Between-region speciation"
+results_clad_cory$type <- "Within-region speciation"
 results_endems_cory$type <- "Number Endemics"
 #results_prop_endems_cory$type <- "Proportion Endemics"
 #results_regional_allo_prop_cory$type <- "Proportion Endemics from Regional Allopatry"
@@ -760,21 +767,21 @@ for(i in 2:7){
 
 #Now I should be ready to make my violin + box plot for all species on all the islands.
 gvil_coryphoideae <- ggplot(results_cory, aes(color=type, fill = type)) +
-  scale_colour_manual(values = c("#efc86e","#6f9969","#454a74")) +
-  scale_fill_manual(values = c("#efc86e","#6f9969","#454a74")) +
+  scale_colour_manual(values = c("#efc86e","#454a74","#6f9969")) +
+  scale_fill_manual(values = c("#efc86e","#454a74","#6f9969")) +
   scale_x_discrete(limits = plot_order) +
   geom_crossbar(data = results_cory, size=0.1, alpha=0.7, aes(x= term, y = estimate,
                     ymin=conf.low_95,
                     ymax=conf.high_95),
                 position = position_dodge2(width = 1.5)) +
   geom_text(data = results_cory,
-            aes(x = term, y = conf.high_95 + 0.3, label = ifelse(p.value < 0.05, "*", " ")),
+            aes(x = term, y = conf.high_95 + 0.2, label = ifelse(p.value < 0.05, "*", " ")),
             position = position_dodge(width = 1),
             hjust = -0.7, size = 5, show.legend = FALSE, na.rm = TRUE)+
   geom_hline(yintercept = 0, colour = gray(0), lty = 3) +
-  xlab("Coefficients") +
+  xlab("") +
   ylab("Estimate") +
-  scale_y_continuous(breaks = seq(-10, 15, by = 5), limits = c(-10,15)) +
+  scale_y_continuous(breaks = seq(-2, 14, by = 2), limits = c(-2,14)) +
   theme_classic() +
   labs(fill = element_blank(), colour = element_blank()) +
   theme(axis.title.y = element_blank(), legend.position = "none") +
@@ -845,13 +852,6 @@ clad_volc_table[,1:6][clad_volc_table[,1:6]==TRUE] <- "Drop"
 clad_volc_table[,1:6][clad_volc_table[,1:6]==FALSE] <- "Keep"
 
 clad_volc_table
-
-
-
-
-
-
-
 
 
 glm_clad_pois_all_sp_list_models_volc <- list()
@@ -1121,9 +1121,9 @@ for (i in 1:100){
 
 # Adding the speciation mode to the results
 for (i in 1:100) {
-  results_ana_all_list_volc[[i]]$type <- "Anagenesis"
+  results_ana_all_list_volc[[i]]$type <- "Between-region speciation"
   results_endems_all_list_volc[[i]]$type <- "Number Endemics"
-  results_clad_all_list_volc[[i]]$type <- "Cladogenesis"
+  results_clad_all_list_volc[[i]]$type <- "Within-region speciation"
 }
 
 
@@ -1279,11 +1279,13 @@ for(i in 2:7){
 
 # Creating plotting order
 plot_order <- c("Area", "Isolation","Isolation Squared","Max Elevation","Fragmentation","Continental","Mixed Origin")
+plot_order <- c("Area", "Isolation","Isolation Squared","Max Elevation","Fragmentation")
+
 
 #Now I should be ready to make my violin + box plot for all species on all the islands.
 gvil_all_all_volc <- ggplot(glm_coefs_volc, aes(color=type, fill = type)) +
-  scale_colour_manual(values = c("#efc86e","#6f9969","#454a74")) +
-  scale_fill_manual(values = c("#efc86e","#6f9969","#454a74")) +
+  scale_colour_manual(values = c("#efc86e","#454a74","#6f9969")) +
+  scale_fill_manual(values = c("#efc86e","#454a74","#6f9969")) +
   scale_x_discrete(limits = plot_order) +
   geom_violin(aes(x = term, y = estimate),width = 0.8,
              position=position_dodge(width=1),
@@ -1300,13 +1302,13 @@ gvil_all_all_volc <- ggplot(glm_coefs_volc, aes(color=type, fill = type)) +
                 na.rm = TRUE,
              position = position_dodge(width = 1)) +
   geom_text(data = coefs_means_volc,
-            aes(x = term, y = conf.high_95 + 0.3, label = ifelse(p.value < 0.05, "*", " ")),
-            position = position_dodge(width = 1),
+            aes(x = term, y = conf.high_95 + 0.4, label = ifelse(p.value < 0.05, "*", " ")),
+            position = position_dodge(width = 1.2),
             hjust = -0.7, size = 5, show.legend = FALSE, na.rm = TRUE)+
   geom_hline(yintercept = 0, colour = gray(0), lty = 3) +
-  xlab("Coefficients") +
+  xlab("") +
   ylab("Estimate") +
-  scale_y_continuous(breaks = seq(-10, 15, by = 5), limits = c(-10,15)) +
+  scale_y_continuous(breaks = seq(-2, 14, by = 2), limits = c(-2,14)) +
   theme_classic() +
   theme(axis.title.y = element_blank(),legend.position = "none") +
   ggtitle("All Plants: only Volcanic Islands")
@@ -1314,7 +1316,7 @@ gvil_all_all_volc <- ggplot(glm_coefs_volc, aes(color=type, fill = type)) +
 gvil_all_all_volc
 
 prow_3 <- cowplot::plot_grid(gvil_coryphoideae,gvil_all_all,gvil_all_all_volc, labels = c("a.", "b.", "c."), align = "hv", scale = c(1,1,1,1), nrow = 3, ncol = 1)
-legend_bottom <- get_legend(gvil_coryphoideae + guides(color = guide_legend(nrow=1))+theme(legend.position = "bottom", legend.text=element_text(size=6)))
+legend_bottom <- get_legend(gvil_coryphoideae + guides(color = guide_legend(nrow=1))+theme(legend.position = "bottom", legend.text=element_text(size=9)))
 
 prow_3 <- cowplot::plot_grid(prow_3,legend_bottom, ncol = 1, rel_heights = c(1,.05))
 
@@ -1326,10 +1328,10 @@ prow_3
 
 prow4 <- align_plots(gvil_all_all, gvil_coryphoideae,gvil_all_all_volc, align = "hv")
 
-legend_right <- get_legend(gvil_coryphoideae + guides(color = guide_legend(ncol=1, title="Model"), fill = guide_legend(ncol=1, title="Model"))+theme(legend.position = "right",legend.text=element_text(size=9),panel.border = element_rect(colour = "black", fill=NA)))
+legend_bottom <- get_legend(gvil_coryphoideae + guides(color = guide_legend(ncol=1, title="Model"), fill = guide_legend(ncol=1, title="Model"))+theme(legend.position = "bottom",legend.text=element_text(size=9),panel.border = element_rect(colour = "black", fill=NA)))
 
 bottom_row <- plot_grid(
-  prow4[[3]],legend_right,
+  prow4[[3]],legend_bottom,
   labels = c("c."),
   rel_widths = c(1,1),
   nrow = 1

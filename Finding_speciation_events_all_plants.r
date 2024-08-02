@@ -263,81 +263,166 @@ all_vasc_scatter
 # Then I would also like to have a boxplot showing the isolation, area fragmentation and max elevation for each island type aswell.
 
 # Boxplot for Anagenetic Speciation Events
-p1_boxplot <- ggplot(output_all_sp_congregated, aes(x = GeologicalOrigin, y = log(colonization_edges_mean))) +
+p1_boxplot <- ggplot(output_all_sp_congregated, aes(x = GeologicalOrigin, y = log(colonization_edges_mean+radiating_nodes_mean))) +
   geom_boxplot(aes(fill = GeologicalOrigin)) +
   scale_fill_manual(values = met.brewer("Pillement", 4)) +
-  labs(title = "Anagenesis") +
-  xlab("Geological Origin") +
-  ylab("Number of Anagenetic Speciation Events") +
+  labs(title = "Between-region speciation") +
+  xlab("") +
+  ylab("") +
   theme_classic() +
+  theme(
+    axis.text.x = element_blank(),  # Remove x-axis text
+    axis.ticks.x = element_blank(),  # Remove x-axis ticks
+    axis.title.x = element_blank()   # Remove x-axis title
+  ) +
   theme(legend.position = "none")
 
 p1_boxplot
 
 # Boxplot for Cladogenetic Speciation Events
-p2_boxplot <- ggplot(output_all_sp_congregated, aes(x = GeologicalOrigin, y = log(radiating_sp_mean))) +
+p2_boxplot <- ggplot(output_all_sp_congregated, aes(x = GeologicalOrigin, y = log(radiating_sp_mean-radiating_nodes_mean))) +
   geom_boxplot(aes(fill = GeologicalOrigin)) +
   scale_fill_manual(values = met.brewer("Pillement", 4)) +
-  labs(title = "Cladogenesis") +
-  xlab("Geological Origin") +
-  ylab("Number of Cladogenetic Speciation Events") +
+  labs(title = "Within-region speciation") +
+  xlab("") +
+  ylab("") +
   theme_classic() +
+  theme(
+    axis.text.x = element_blank(),  # Remove x-axis text
+    axis.ticks.x = element_blank(),  # Remove x-axis ticks
+    axis.title.x = element_blank()   # Remove x-axis title
+  ) +
   theme(legend.position = "none")
 
 p2_boxplot
 
+# Use cowplot to combine the two boxplots
+all_vasc_boxplot <- cowplot::plot_grid(p1_boxplot,p2_boxplot)
+all_vasc_boxplot
 
-# Boxplot for Cladogenetic Speciation Events
+# now add the title
+title_all <- cowplot::ggdraw() + 
+  draw_label(
+    "All seed plants",
+    fontface = 'bold',
+    x = 0,
+    hjust = 0
+  ) +
+  theme(
+    # add margin on the left of the drawing canvas,
+    # so title is aligned with left edge of first plot
+    plot.margin = margin(0, 0, 0, 40)
+  )
+all_vasc_boxplot <- plot_grid(
+  title_all, all_vasc_boxplot,
+  ncol = 1,
+  # rel_heights values control vertical title margins
+  rel_heights = c(0.1, 1)
+)
+all_vasc_boxplot
+
+
+
+# Boxplot for area
 p3_boxplot <- ggplot(output_all_sp_congregated, aes(x = GeologicalOrigin, y = log(area))) +
   geom_boxplot(aes(fill = GeologicalOrigin)) +
   scale_fill_manual(values = met.brewer("Pillement", 4)) +
-  labs(title = "Cladogenesis") +
-  xlab("Geological Origin") +
-  ylab("Area") +
+  labs(title = "Area") +
+  xlab("") +
+  ylab("") +
   theme_classic() +
+  theme(
+  axis.text.x = element_blank(),  # Remove x-axis text
+  axis.ticks.x = element_blank(),  # Remove x-axis ticks
+  axis.title.x = element_blank()   # Remove x-axis title
+  ) +
   theme(legend.position = "none")
 
 p3_boxplot
 
-
-# Boxplot for Cladogenetic Speciation Events
+# Boxplot for Isolation
 p4_boxplot <- ggplot(output_all_sp_congregated, aes(x = GeologicalOrigin, y = log(dist))) +
   geom_boxplot(aes(fill = GeologicalOrigin)) +
   scale_fill_manual(values = met.brewer("Pillement", 4)) +
-  labs(title = "Cladogenesis") +
-  xlab("Geological Origin") +
-  ylab("Isolation") +
+  labs(title = "Isolation") +
+  xlab("") +
+  ylab("") +
   theme_classic() +
+  theme(
+  axis.text.x = element_blank(),  # Remove x-axis text
+  axis.ticks.x = element_blank(),  # Remove x-axis ticks
+  axis.title.x = element_blank()   # Remove x-axis title
+  ) +
   theme(legend.position = "none")
 
 p4_boxplot
 
 
-
-# Boxplot for Cladogenetic Speciation Events
+# Boxplot for Fragmentation
 p5_boxplot <- ggplot(output_all_sp_congregated, aes(x = GeologicalOrigin, y = log(nearest_neighbour_distance_border_scaled))) +
   geom_boxplot(aes(fill = GeologicalOrigin)) +
   scale_fill_manual(values = met.brewer("Pillement", 4)) +
-  labs(title = "Cladogenesis") +
-  xlab("Geological Origin") +
-  ylab("Fragmentation") +
+  labs(title = "Fragmentation") +
+  xlab("") +
+  ylab("") +
   theme_classic() +
+  theme(
+  axis.text.x = element_blank(),  # Remove x-axis text
+  axis.ticks.x = element_blank(),  # Remove x-axis ticks
+  axis.title.x = element_blank()   # Remove x-axis title
+  ) +
   theme(legend.position = "none")
 
 p5_boxplot
 
 
-# Boxplot for Cladogenetic Speciation Events
-p5_boxplot <- ggplot(output_with_island, aes(x = GeologicalOrigin, y = log(max_elev_30m))) +
+# Boxplot for Maximum elevation
+p6_boxplot <- ggplot(output_all_sp_test_subset_log[[1]], aes(x = GeologicalOrigin, y = log(max30_elev))) +
   geom_boxplot(aes(fill = GeologicalOrigin)) +
   scale_fill_manual(values = met.brewer("Pillement", 4)) +
-  labs(title = "Cladogenesis") +
-  xlab("Geological Origin") +
-  ylab("Max elevation") +
+  labs(title = "Maximum elevation") +
+  xlab("") +
+  ylab("") +
   theme_classic() +
+  theme(
+    axis.text.x = element_blank(),  # Remove x-axis text
+    axis.ticks.x = element_blank(),  # Remove x-axis ticks
+    axis.title.x = element_blank()   # Remove x-axis title
+  ) +
   theme(legend.position = "none")
 
-p5_boxplot
+p6_boxplot
+
+
+# Create a cowplott of p3,p4,p5 and p6 in one row
+boxplot_phys_vars <- cowplot::plot_grid(p3_boxplot,p4_boxplot,p5_boxplot,p6_boxplot, nrow = 1)
+
+# Adding the legend to the boxplot
+legend_bottom <- get_legend(p4_boxplot+theme(legend.position = "bottom", legend.text=element_text(size=12)))
+boxplot_phys_vars_with_legend <- cowplot::plot_grid(boxplot_phys_vars,legend_bottom, ncol=1,nrow = 2, rel_heights = c(1,.1))
+
+# now add the title
+title_phys <- ggdraw() + 
+  draw_label(
+    "Island physical characteristics",
+    fontface = 'bold',
+    x = 0,
+    hjust = 0
+  ) +
+  theme(
+    # add margin on the left of the drawing canvas,
+    # so title is aligned with left edge of first plot
+    plot.margin = margin(0, 0, 0, 40)
+  )
+boxplot_phys_vars_with_legend <- plot_grid(
+  title_phys, boxplot_phys_vars_with_legend,
+  ncol = 1,
+  # rel_heights values control vertical title margins
+  rel_heights = c(0.1, 1)
+)
+
+boxplot_phys_vars_with_legend
+
 
 
 
