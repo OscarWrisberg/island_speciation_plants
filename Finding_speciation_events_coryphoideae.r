@@ -463,7 +463,7 @@ p1_cory <- ggplot(output_with_island_cory, aes(area, dist)) +
   geom_point(aes(size = ifelse(`No. cladogenesis` >= 2, `No. cladogenesis`, 1.2), color=GeologicalOrigin, shape = ifelse(`No. cladogenesis` >= 2, "Shape1", "Shape2"))) +
   scale_colour_manual(values = met.brewer("Pillement", 4)) +
   scale_shape_manual(values = c("Shape1" = 16, "Shape2" = 4)) +
-  labs(size ="Endemic Sp", title = "Cladogenesis") +
+  labs(size ="Endemic Sp", title = "Within region") +
   xlab("Island Area (Km²)") +
   ylab("Distance to Mainland (Km)") +
   scale_size(range=c(1,8), limits = c(1,33), breaks = c(1, 10, 20, 30)) +
@@ -481,7 +481,7 @@ p1_cory
 p2_cory <- ggplot(output_with_island_cory, aes(area, dist)) +
   geom_point(aes(size = ifelse(`No. anagenesis`+`No. edges` >= 1, `No. anagenesis`+`No. edges`, 1.2), color=GeologicalOrigin, shape = ifelse(`No. anagenesis`+`No. edges` >= 1, "Shape1", "Shape2"))) +
   scale_colour_manual(values = met.brewer("Pillement", 4)) +
-  labs(size ="Endemic Sp", title = "Anagenesis") +
+  labs(size ="Endemic Sp", title = "Between region") +
   scale_shape_manual(values = c("Shape1" = 16, "Shape2" = 4)) +
   xlab("Island Area (Km²)") +
   ylab("Distance to Mainland (Km)") +

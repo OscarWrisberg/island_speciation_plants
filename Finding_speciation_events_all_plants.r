@@ -196,7 +196,7 @@ for (i in 1:length(tmp_data)){
 p1 <- ggplot(output_all_sp_congregated, aes(area, dist+1)) +
   geom_point(aes(size=colonization_edges_mean, color=GeologicalOrigin)) +
   scale_colour_manual(values = met.brewer("Pillement", 4)) +
-  labs(size ="Species", title = "Anagenesis") +
+  labs(size ="Species", title = "Between region") +
   xlab("Island Area (Km²)") +
   ylab("Distance to Mainland (Km) ") +
   scale_size(range=c(0.1,8), limits = c(1,7000)) +
@@ -215,7 +215,7 @@ p1
 p2 <- ggplot(output_all_sp_congregated, aes(area,dist+1)) +
   geom_point(aes(size=radiating_sp_mean, color=GeologicalOrigin)) +
   scale_colour_manual(values = met.brewer("Pillement", 4)) +
-  labs(size ="Endemic Sp", title = "Cladogenesis") +
+  labs(size ="Endemic Sp", title = "Within region") +
   xlab("Island Area (Km²)") +
   ylab("Distance to Mainland (Km)") +
   scale_size(range=c(0.1,8), limits = c(1,7000)) +
